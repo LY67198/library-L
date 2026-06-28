@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,11 +10,14 @@ from fastapi.responses import JSONResponse
 from opentelemetry import trace
 
 from app.api.v1.router import api_router
+from app.clients.embedding_client import EmbeddingClient
 from app.clients.redis_client import dispose_redis, init_redis
 from app.core.config import get_settings
 from app.core.database import dispose_engine, init_engine
 from app.core.exceptions import LibraryBaseError
 from app.core.observability import init_observability, shutdown_observability
+from app.rag.bm25_index import WhooshIndexManager
+from app.rag.chroma_store import ChromaStore
 
 
 @asynccontextmanager
@@ -30,6 +34,12 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+    # RAG singletons (per-process; lifetime tied to app)
+    rag_base = Path("./data/rag")
+    rag_base.mkdir(parents=True, exist_ok=True)
+    app.state.bm25_index = WhooshIndexManager(rag_base / "bm25")
+    app.state.chroma_store = ChromaStore(rag_base / "chroma")
+    app.state.embedding_client = EmbeddingClient()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
