@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from testcontainers.postgres import PostgresContainer
 
 from app.core.config import Settings, get_settings
@@ -18,7 +23,7 @@ from app.models import Base
 
 
 @pytest.fixture(scope="session")
-def event_loop():
+def event_loop() -> Any:
     """整个测试会话共享的 asyncio 事件循环。"""
     loop = asyncio.new_event_loop()
     yield loop
@@ -55,7 +60,7 @@ def test_settings(postgres_container: Any) -> Settings:
 
 
 @pytest_asyncio.fixture(scope="session")
-async def engine(test_settings: Settings):
+async def engine(test_settings: Settings) -> AsyncGenerator[AsyncEngine, None]:
     """基于测试数据库 URL 创建的 SQLAlchemy 异步引擎,启动时建表,会话结束释放。"""
     eng = create_async_engine(test_settings.database_url)
     async with eng.begin() as conn:
@@ -65,7 +70,7 @@ async def engine(test_settings: Settings):
 
 
 @pytest_asyncio.fixture
-async def db_session(engine) -> AsyncIterator[AsyncSession]:
+async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     """每个测试函数独立的 AsyncSession,函数结束回滚并清理除 tenants 之外的所有表。"""
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with factory() as session:
@@ -79,19 +84,22 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest_asyncio.fixture
-async def client(test_settings: Settings, engine) -> AsyncIterator[AsyncClient]:
+async def client(
+    test_settings: Settings, engine: AsyncEngine
+) -> AsyncGenerator[AsyncClient, None]:
     """基于 ASGI 传输、覆写 get_db_dependency 的 HTTPX AsyncClient,用于调用 FastAPI。"""
 
-    # Override get_settings
+    # Override get_settings:替换 lru_cache 包装的函数
     get_settings.cache_clear()
 
     from app.core import config as config_module
-    config_module.get_settings = lambda: test_settings
+
+    config_module.get_settings = lambda: test_settings  # type: ignore[assignment]
 
     # Override get_db_dependency
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-    async def override_get_db():
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with factory() as session:
             try:
                 yield session

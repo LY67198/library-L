@@ -1,6 +1,7 @@
 """FastAPI 依赖注入模块 — 提供数据库会话与当前登录用户等可在路由中复用的依赖项。"""
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from typing import Annotated
 from uuid import UUID
 
@@ -17,14 +18,16 @@ from app.services.user_service import UserService
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-async def get_db(request: Request) -> AsyncSession:
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
     """FastAPI 数据库会话依赖 — 包装核心层的 get_db_dependency,为每个请求产出一个 AsyncSession。
+
+    这是一个 async generator(用 yield 产出),FastAPI 会负责在请求结束时关闭它。
 
     参数:
         request: FastAPI 请求对象(底层未直接使用,但 FastAPI 依赖注入框架要求)。
 
     返回值:
-        AsyncSession: 一个异步 SQLAlchemy 会句,通过异步生成器在请求结束后自动关闭。
+        AsyncGenerator[AsyncSession, None]: 异步生成器,每次产出可用的 AsyncSession。
     """
     async for session in get_db_dependency():
         yield session

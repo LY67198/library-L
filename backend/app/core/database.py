@@ -2,7 +2,7 @@
 """
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import (
@@ -65,11 +65,11 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 @asynccontextmanager
-async def get_db() -> AsyncIterator[AsyncSession]:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """通用事务上下文管理器,产出 Session 并在退出时自动 commit / rollback。
 
     返回值:
-        AsyncIterator[AsyncSession]: 异步迭代器,产出可用的 AsyncSession。
+        AsyncGenerator[AsyncSession, None]: 异步生成器,产出可用的 AsyncSession。
     """
     factory = get_session_factory()
     async with factory() as session:
@@ -81,11 +81,11 @@ async def get_db() -> AsyncIterator[AsyncSession]:
             raise
 
 
-async def get_db_dependency() -> AsyncIterator[AsyncSession]:
+async def get_db_dependency() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI 依赖版本,每个请求产出独立 Session,成功提交 / 失败回滚。
 
     返回值:
-        AsyncIterator[AsyncSession]: 异步迭代器,产出可用的 AsyncSession。
+        AsyncGenerator[AsyncSession, None]: 异步生成器,产出可用的 AsyncSession。
     """
     factory = get_session_factory()
     async with factory() as session:
