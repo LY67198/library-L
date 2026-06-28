@@ -1,4 +1,6 @@
 """重试机制测试 — 验证 retry_async 在首次成功、重试后成功、耗尽、未列入白名单异常下的行为。"""
+from __future__ import annotations
+
 import asyncio
 import pytest
 

@@ -1,4 +1,6 @@
 """健康检查接口测试 — 验证 /api/v1/health 的 200 响应、组件状态与无需鉴权。"""
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

@@ -1,4 +1,6 @@
 """JWT 安全模块测试 — 验证 access/refresh token 的签发、解码、非法与过期 token 的处理。"""
+from __future__ import annotations
+
 import time
 from uuid import uuid4
 

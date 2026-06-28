@@ -1,4 +1,6 @@
 """座位预约 API 集成测试 — 验证单人预约成功、同一时间段被再次预约时返回 409 冲突。"""
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 

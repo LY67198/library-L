@@ -1,4 +1,6 @@
 """RRF(倒数排名融合)测试 — 验证单列表保序、多列表加分、k 参数、边界与去重策略。"""
+from __future__ import annotations
+
 from app.rag.bm25_retriever import Hit
 from app.rag.rrf import reciprocal_rank_fusion
 

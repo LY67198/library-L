@@ -1,4 +1,6 @@
 """密码哈希测试 — 验证 hash_password/verify_password 的正确性、错误密码拒绝与 salt 唯一性。"""
+from __future__ import annotations
+
 from app.core.security import hash_password, verify_password
 
 

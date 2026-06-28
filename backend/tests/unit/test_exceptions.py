@@ -1,4 +1,6 @@
 """自定义异常体系测试 — 验证 LibraryBaseError 及子类的状态码、错误码与 details 行为。"""
+from __future__ import annotations
+
 from app.core.exceptions import (
     Conflict,
     LibraryBaseError,

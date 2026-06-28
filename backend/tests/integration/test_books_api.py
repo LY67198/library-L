@@ -1,4 +1,6 @@
 """图书 API 集成测试 — 验证空列表、student 角色无权创建、librarian 创建并可被列出。"""
+from __future__ import annotations
+
 from uuid import UUID
 
 import pytest

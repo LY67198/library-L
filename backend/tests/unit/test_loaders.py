@@ -1,4 +1,6 @@
 """文档加载器测试 — 验证 load_document 对 txt、markdown、docx、pdf 的解析与对未知格式的错误处理。"""
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

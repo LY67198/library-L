@@ -1,4 +1,6 @@
 """分布式锁测试 — 使用内存版 FakeRedis 桩模拟 SET NX PX / Lua 释放脚本,避免真实 Redis 依赖。"""
+from __future__ import annotations
+
 import asyncio
 import pytest
 

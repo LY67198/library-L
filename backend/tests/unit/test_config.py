@@ -1,4 +1,6 @@
 """配置模块测试 — 验证 Settings 的默认值、环境变量覆盖、URL 派生与非法值校验。"""
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 

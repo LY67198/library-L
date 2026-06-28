@@ -1,4 +1,6 @@
 """认证 API 集成测试 — 验证 register / login / me 的成功、冲突、校验失败与未鉴权场景。"""
+from __future__ import annotations
+
 from uuid import UUID
 
 import pytest

@@ -1,4 +1,6 @@
 """政策 API 集成测试 — 验证创建政策触发 RAG 索引,以及 student 无权访问 admin 政策接口。"""
+from __future__ import annotations
+
 from uuid import UUID
 
 import pytest

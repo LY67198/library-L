@@ -1,4 +1,6 @@
 """文本分块测试 — 验证 chunk_text 的单块行为、最大长度限制、相邻块 overlap 与偏移量正确性。"""
+from __future__ import annotations
+
 from app.rag.chunker import Chunk, chunk_text
 
 
