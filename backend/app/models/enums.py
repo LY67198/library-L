@@ -1,5 +1,4 @@
 """业务枚举类型 — 定义用户/图书/座位/预约/租户状态等域枚举,值使用英文以保证序列化稳定。"""
-
 from __future__ import annotations
 
 import enum

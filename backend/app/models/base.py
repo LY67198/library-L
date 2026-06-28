@@ -1,5 +1,4 @@
 """ORM 基础类与混入 — 提供 DeclarativeBase、时间戳混入、多租户字段混入与可复用 Annotated 类型。"""
-
 from __future__ import annotations
 
 from datetime import datetime

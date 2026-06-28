@@ -1,5 +1,4 @@
 """图书模型 — 租户内的馆藏图书记录,带 ISBN、馆藏副本数与灵活扩展字段。"""
-
 from __future__ import annotations
 
 from datetime import datetime
