@@ -2,6 +2,17 @@
 
 > 面向高校图书馆场景的 AI Agent + RAG 全栈应用,支持馆藏检索、座位预约、政策咨询与通用对话。
 
+## 📍 当前进度
+
+**Plan 01 — 基础设施** ✅ 已完成(31 任务):FastAPI 骨架、PostgreSQL schema、JWT 鉴权、Docker Compose、CI 流水线。
+**Plan 02 — 业务服务 + RAG 流水线**:待执行
+**Plan 03 — LangGraph 多 Agent + Chat SSE**:待执行
+**Plan 04 — MCP Server + 可观测性**:待执行
+**Plan 05 — 前端 + Ragas 评估 + E2E**:待执行
+
+设计 spec: [`docs/superpowers/specs/`](docs/superpowers/specs/) (本地保留,不推送)
+
+
 ## ✨ 核心能力
 
 - 📚 **馆藏检索** — 自然语言查询图书(题名 / 作者 / ISBN / 主题)
