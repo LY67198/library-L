@@ -81,3 +81,8 @@ python_version = "3.12"
 strict = true
 files = ["app"]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "psycopg2-binary>=2.9.9",
+]
