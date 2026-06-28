@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8000"]
 
+    # External APIs
+    dashscope_api_key: str = Field(default="sk-placeholder", min_length=1)
+
     # OTel
     otel_collector_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "library-service"
