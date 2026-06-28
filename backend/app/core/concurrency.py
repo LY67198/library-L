@@ -1,4 +1,5 @@
-"""Distributed lock with Lua release + retry helpers."""
+"""分布式锁 — 基于 Redis 的 ``SET NX PX`` + Lua 释放脚本,并提供带退避的重试辅助函数。
+"""
 from __future__ import annotations
 
 import asyncio
@@ -9,7 +10,7 @@ from typing import Any
 
 
 class LockAcquireError(Exception):
-    """Raised when a distributed lock cannot be acquired."""
+    """无法获取分布式锁时抛出。"""
 
 
 _RELEASE_SCRIPT = """
@@ -22,15 +23,23 @@ end
 
 
 class DistributedLock(AbstractAsyncContextManager):
-    """Async distributed lock (SET NX PX + Lua release).
+    """异步分布式锁(SET NX PX + Lua 安全释放)。
 
-    Usage:
+    使用方式::
+
         lock = DistributedLock(redis, key="seat:42", ttl_ms=3000)
         async with lock:
             ...
     """
 
     def __init__(self, redis: Any, *, key: str, ttl_ms: int):
+        """构造分布式锁。
+
+        参数:
+            redis: 已连接的异步 Redis 客户端(支持 ``set`` / ``eval``)。
+            key: 锁对应的 Redis Key。
+            ttl_ms: 锁的过期毫秒数,防止持锁方崩溃后死锁。
+        """
         self.redis = redis
         self.key = key
         self.ttl_ms = ttl_ms
@@ -38,6 +47,11 @@ class DistributedLock(AbstractAsyncContextManager):
         self._held = False
 
     async def __aenter__(self) -> "DistributedLock":
+        """尝试获取锁;若已被持有则抛出 ``LockAcquireError``。
+
+        返回值:
+            DistributedLock: 自身实例,供 ``async with`` 绑定。
+        """
         ok = await self.redis.set(self.key, self.token, nx=True, px=self.ttl_ms)
         if not ok:
             raise LockAcquireError(f"Lock '{self.key}' is held by another holder")
@@ -45,6 +59,7 @@ class DistributedLock(AbstractAsyncContextManager):
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
+        """退出上下文时通过 Lua 脚本原子释放锁(仅当 token 匹配)。"""
         if self._held:
             try:
                 await self.redis.eval(_RELEASE_SCRIPT, 1, self.key, self.token)
@@ -58,12 +73,15 @@ async def acquire_with_retry(
     max_retries: int = 3,
     backoff_ms: list[int] | None = None,
 ) -> AbstractAsyncContextManager:
-    """Acquire a lock with exponential backoff. Raises LockAcquireError after max_retries.
+    """以指数退避方式尝试获取锁,失败 ``max_retries`` 次后抛出 ``LockAcquireError``。
 
-    Args:
-        lock_factory: callable returning a new lock context manager each attempt
-        max_retries: total attempts (1 = try once, no retry)
-        backoff_ms: sleep before each retry; default [100, 200, 400]
+    参数:
+        lock_factory: 每次重试都应返回一个新的锁上下文管理器的可调用对象。
+        max_retries: 最大尝试次数(1 表示只尝试一次,不重试)。
+        backoff_ms: 每次重试前的睡眠毫秒数;默认 ``[100, 200, 400]``。
+
+    返回值:
+        AbstractAsyncContextManager: 已成功进入的锁上下文管理器。
     """
     if backoff_ms is None:
         backoff_ms = [100, 200, 400]
