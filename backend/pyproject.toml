@@ -89,7 +89,14 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "C4"]
-ignore = ["E501"]
+ignore = [
+    "E501",     # line-too-long
+    "B008",     # FastAPI 惯例:Depends() 在默认参数中是框架要求
+    "N818",     # 异常类用 Unauthorized/Forbidden/NotFound/Conflict,与 spec §9.4 一致
+    "UP046",    # Pydantic v2 Generic 子类仍可用
+    "UP042",    # str + Enum 在 Python 3.12 仍可用
+    "UP047",    # retry_async 的 T 通过 Callable 推导,无需显式声明
+]
 
 [tool.mypy]
 python_version = "3.12"

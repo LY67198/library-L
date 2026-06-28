@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, DateTime, Index, Integer, String, Text
+from sqlalchemy import BigInteger, DateTime, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -84,8 +84,8 @@ class Book(TenantScopedMixin):
         if name == "metadata":
             try:
                 return super().__getattribute__("book_metadata")
-            except AttributeError:
-                raise AttributeError(name)
+            except AttributeError as err:
+                raise AttributeError(name) from err
         return super().__getattribute__(name)
 
     def __setattr__(self, name: str, value: Any) -> None:

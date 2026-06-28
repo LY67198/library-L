@@ -1,7 +1,7 @@
 """预约领域服务 — 业务编排,实现 Redis 锁 + PG 乐观锁的两层并发防御。"""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -114,8 +114,8 @@ class AppointmentService:
                 lambda: DistributedLock(redis, key=lock_key, ttl_ms=3000),
                 max_retries=3,
             )
-        except LockAcquireError:
-            raise Conflict("Seat is being booked by another user, please retry")
+        except LockAcquireError as err:
+            raise Conflict("Seat is being booked by another user, please retry") from err
 
         try:
             # 第二层防御:数据库级时间冲突检测(正确性兜底)
@@ -175,8 +175,8 @@ class AppointmentService:
                 lambda: DistributedLock(redis, key=lock_key, ttl_ms=3000),
                 max_retries=3,
             )
-        except LockAcquireError:
-            raise Conflict("Appointment is being modified, please retry")
+        except LockAcquireError as err:
+            raise Conflict("Appointment is being modified, please retry") from err
         try:
             # 第二层防御:PostgreSQL 乐观锁,按 version 条件 UPDATE
             ok = await self.repo.cancel_with_version(
