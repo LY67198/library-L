@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from opentelemetry import trace
 
 from app.api.v1.router import api_router
+from app.clients.redis_client import dispose_redis, init_redis
 from app.core.config import get_settings
 from app.core.database import dispose_engine, init_engine
 from app.core.exceptions import LibraryBaseError
@@ -19,8 +20,10 @@ from app.core.observability import init_observability, shutdown_observability
 async def lifespan(app: FastAPI):
     init_observability()
     init_engine()
+    init_redis()
     yield
     await dispose_engine()
+    await dispose_redis()
     shutdown_observability()
 
 
