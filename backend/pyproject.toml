@@ -33,6 +33,14 @@ dependencies = [
     "redis>=5.0.0",
     "pypdf>=5.0.0",
     "python-docx>=1.1.0",
+    "whoosh>=2.7.4",
+    "jieba>=0.42.1",
+    "chromadb>=1.5.9",
+    "langgraph>=1.0.0",
+    "dashscope>=1.26.0",
+    "celery>=5.6.3",
+    "ragas<0.4",
+    "langchain-google-vertexai>=3.2.4",
 ]
 
 [project.optional-dependencies]
