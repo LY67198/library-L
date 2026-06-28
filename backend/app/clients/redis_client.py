@@ -1,4 +1,5 @@
 """Redis 异步客户端封装 — 提供全局单例的 Redis 连接管理。"""
+
 from __future__ import annotations
 
 from redis.asyncio import Redis, from_url

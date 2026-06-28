@@ -1,4 +1,5 @@
 """座位预约路由 — 提供我的预约查询、单条预约查询、预约座位、取消预约等接口。"""
+
 from __future__ import annotations
 
 from typing import Annotated

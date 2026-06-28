@@ -1,4 +1,5 @@
 """健康检查路由 — 提供数据库连通性探测,供负载均衡 / 探针使用。"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

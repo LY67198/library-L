@@ -1,4 +1,5 @@
 """FastAPI 依赖注入模块 — 提供数据库会话与当前登录用户等可在路由中复用的依赖项。"""
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator

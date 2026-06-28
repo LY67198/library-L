@@ -1,4 +1,5 @@
 """馆藏图书路由 — 提供图书的列表、详情、创建、更新与删除接口(写操作限图书管理员)。"""
+
 from __future__ import annotations
 
 from typing import Annotated

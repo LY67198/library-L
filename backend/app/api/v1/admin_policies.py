@@ -1,4 +1,5 @@
 """策略管理路由 — 提供图书馆政策的 CRUD 与重新索引接口(写入限管理员角色)。"""
+
 from __future__ import annotations
 
 from typing import Annotated

@@ -1,4 +1,5 @@
 """认证路由 — 提供注册、登录、刷新令牌、当前用户查询等 JWT 鉴权相关接口。"""
+
 from __future__ import annotations
 
 from typing import Annotated

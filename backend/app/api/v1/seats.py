@@ -1,4 +1,5 @@
 """座位查询路由 — 提供按全部、按楼层、按可用状态等维度的座位列表查询接口。"""
+
 from __future__ import annotations
 
 from typing import Annotated
