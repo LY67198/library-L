@@ -30,6 +30,7 @@ dependencies = [
     # HTTP client (for tests)
     "httpx>=0.27.0",
     "email-validator>=2.2.0",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]
