@@ -1,4 +1,4 @@
-"""Sliding-window text chunker."""
+"""滑动窗口文本切分器 — 将长文本切分为带重叠的 Chunk 列表。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Chunk:
+    """文本切片 — 包含内容、起止偏移与稳定 ID。"""
+
     content: str
     start_offset: int
     end_offset: int
@@ -19,13 +21,19 @@ def chunk_text(
     overlap: int = 80,
     min_chunk: int = 100,
 ) -> list[Chunk]:
-    """Split text into overlapping chunks.
+    """将文本切分为带重叠的片段。
 
-    Args:
-        text: input string
-        chunk_size: target chunk size in characters
-        overlap: overlap between consecutive chunks
-        min_chunk: drop trailing chunks shorter than this (unless it's the only chunk)
+    参数:
+        text: 输入文本。
+        chunk_size: 每片目标字符数。
+        overlap: 相邻片段之间的重叠字符数。
+        min_chunk: 短于此长度的尾部片段将被丢弃(若为唯一片段则保留)。
+
+    返回值:
+        list[Chunk]: 切分后的 Chunk 列表。
+
+    抛出:
+        ValueError: 当 `chunk_size <= overlap` 时。
     """
     text = text.strip()
     if not text:
@@ -50,5 +58,13 @@ def chunk_text(
 
 
 def _hash(content: str) -> str:
+    """计算内容 SHA1 摘要,作为 Chunk ID。
+
+    参数:
+        content: 待哈希的文本。
+
+    返回值:
+        str: 40 字符十六进制摘要。
+    """
     import hashlib
     return hashlib.sha1(content.encode("utf-8")).hexdigest()

@@ -1,0 +1,1 @@
+"""外部服务客户端 — 封装 Redis、Embedding、Rerank 等基础设施访问。"""

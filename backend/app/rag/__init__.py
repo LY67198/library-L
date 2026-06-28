@@ -1,1 +1,1 @@
-"""RAG pipeline (loaders, chunker, BM25, dense, RRF, rerank, hybrid)."""
+"""RAG 检索增强生成流水线 — 包含 loaders、chunker、BM25、Dense、RRF、Rerank、Hybrid 检索等模块。"""

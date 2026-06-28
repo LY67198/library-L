@@ -1,6 +1,6 @@
-"""Qwen qwen3-rerank via DashScope native endpoint.
+"""Qwen qwen3-rerank Rerank 客户端 — 基于 DashScope 原生端点。
 
-Note: NOT OpenAI-compatible — uses DashScope Generation API.
+注意:非 OpenAI 兼容协议,使用 DashScope 专用 Generation API。
 """
 from __future__ import annotations
 
@@ -15,7 +15,14 @@ from app.core.retry import retry_async
 
 
 class RerankClient:
+    """Rerank 客户端 — 调用 DashScope 原生 TextReRank 端点对候选文档重排。"""
+
     def __init__(self, model: str = "qwen3-rerank"):
+        """初始化 RerankClient。
+
+        参数:
+            model: 使用的 rerank 模型名称,默认 `qwen3-rerank`。
+        """
         settings = get_settings()
         dashscope.api_key = settings.dashscope_api_key
         self.model = model
@@ -28,9 +35,15 @@ class RerankClient:
         *,
         top_n: int = 5,
     ) -> list[tuple[int, float]]:
-        """Rerank documents by relevance to query.
+        """根据 query 对 documents 重排。
 
-        Returns list of (original_index, relevance_score), sorted by score desc.
+        参数:
+            query: 查询字符串。
+            documents: 候选文档文本序列。
+            top_n: 返回前 N 个结果,默认 5。
+
+        返回值:
+            list[tuple[int, float]]: `(原始索引, 相关性分数)` 列表,按分数降序。
         """
         if not documents:
             return []
@@ -44,6 +57,16 @@ class RerankClient:
         return results
 
     def _rerank_sync(self, query: str, documents: list[str], top_n: int) -> list[tuple[int, float]]:
+        """同步调用 DashScope TextReRank,内部使用。
+
+        参数:
+            query: 查询字符串。
+            documents: 候选文档文本列表。
+            top_n: 返回前 N 个结果。
+
+        返回值:
+            list[tuple[int, float]]: `(原始索引, 相关性分数)` 列表,按分数降序。
+        """
         # DashScope SDK returns Response object with .output.results
         resp = TextReRank.call(
             model=self.model,
