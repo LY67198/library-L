@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from opentelemetry import trace
+
+from app.api.v1.router import api_router
+from app.core.config import get_settings
+from app.core.database import dispose_engine, init_engine
+from app.core.exceptions import LibraryBaseError
+from app.core.observability import init_observability, shutdown_observability
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_observability()
+    init_engine()
+    yield
+    await dispose_engine()
+    shutdown_observability()
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(api_router)
+    _register_exception_handlers(app)
+    return app
+
+
+def _current_trace_id() -> str | None:
+    span = trace.get_current_span()
+    if span.is_recording():
+        return format(span.get_span_context().trace_id, "032x")
+    return None
+
+
+def _register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(LibraryBaseError)
+    async def library_error_handler(request: Request, exc: LibraryBaseError):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "details": exc.details,
+                    "trace_id": _current_trace_id(),
+                    "request_id": request.headers.get("x-request-id"),
+                }
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "validation_error",
+                    "message": "Request validation failed",
+                    "details": {"errors": exc.errors()},
+                    "trace_id": _current_trace_id(),
+                    "request_id": request.headers.get("x-request-id"),
+                }
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "code": "internal_error",
+                    "message": "An internal error occurred",
+                    "trace_id": _current_trace_id(),
+                    "request_id": request.headers.get("x-request-id"),
+                }
+            },
+        )
+
+
+app = create_app()
