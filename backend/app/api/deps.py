@@ -1,3 +1,4 @@
+"""FastAPI 依赖注入模块 — 提供数据库会话与当前登录用户等可在路由中复用的依赖项。"""
 from __future__ import annotations
 
 from typing import Annotated
@@ -17,7 +18,14 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_db(request: Request) -> AsyncSession:
-    """FastAPI dependency wrapper around get_db_dependency."""
+    """FastAPI 数据库会话依赖 — 包装核心层的 get_db_dependency,为每个请求产出一个 AsyncSession。
+
+    参数:
+        request: FastAPI 请求对象(底层未直接使用,但 FastAPI 依赖注入框架要求)。
+
+    返回值:
+        AsyncSession: 一个异步 SQLAlchemy 会句,通过异步生成器在请求结束后自动关闭。
+    """
     async for session in get_db_dependency():
         yield session
 
@@ -27,7 +35,19 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)] = None,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Extract JWT, decode, fetch user. Sets request.state.user_id and request.state.tenant_id."""
+    """解析当前请求的 JWT 并返回对应用户。
+
+    从 Authorization Bearer 头提取 access token,解码后校验类型,再加载用户实体。
+    同时将 user_id / tenant_id / roles 写入 request.state,供后续依赖或中间件复用。
+
+    参数:
+        request: FastAPI 请求对象,用于写入解析后的用户上下文。
+        credentials: FastAPI 提取的 Bearer 凭据,依赖 HTTPBearer 安全方案。
+        db: 异步数据库会话,用于按 user_id 加载用户记录。
+
+    返回值:
+        User: 当前请求对应的已登录用户实体。
+    """
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise Unauthorized("Missing bearer token")
 

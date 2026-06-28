@@ -1,3 +1,4 @@
+"""认证路由 — 提供注册、登录、刷新令牌、当前用户查询等 JWT 鉴权相关接口。"""
 from __future__ import annotations
 
 from typing import Annotated
@@ -26,7 +27,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 async def _resolve_default_tenant(db: AsyncSession) -> UUID:
-    """MVP: single default tenant."""
+    """解析 MVP 阶段默认租户 — 通过 settings 中的 default_tenant_code 查找种子租户。
+
+    参数:
+        db: 异步数据库会话,用于查询 Tenant 表。
+
+    返回值:
+        UUID: 默认租户的主键 ID。
+
+    抛出:
+        RuntimeError: 当默认租户尚未初始化(未运行 scripts/init_db.py)时抛出。
+    """
     from sqlalchemy import select
     from app.models import Tenant
 
@@ -47,6 +58,15 @@ async def register(
     payload: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
+    """用户注册 — 创建新用户并返回 access/refresh 双令牌。
+
+    参数:
+        payload: 注册请求体,包含学号、密码、姓名、邮箱。
+        db: 异步数据库会话,用于写入新用户。
+
+    返回值:
+        TokenResponse: 包含访问令牌、刷新令牌、过期时间与用户信息的响应。
+    """
     tenant_id = await _resolve_default_tenant(db)
     service = UserService(db)
     user = await service.register(
@@ -81,6 +101,15 @@ async def login(
     payload: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
+    """用户登录 — 校验账号密码,成功后下发 access/refresh 双令牌。
+
+    参数:
+        payload: 登录请求体,包含学号与密码。
+        db: 异步数据库会话,用于查询用户与鉴权。
+
+    返回值:
+        TokenResponse: 包含访问令牌、刷新令牌、过期时间与用户信息的响应。
+    """
     tenant_id = await _resolve_default_tenant(db)
     service = UserService(db)
     user = await service.authenticate(
@@ -110,6 +139,18 @@ async def refresh(
     payload: RefreshRequest,
     db: AsyncSession = Depends(get_db),
 ) -> AccessTokenResponse:
+    """刷新访问令牌 — 使用 refresh token 换发新的 access token。
+
+    参数:
+        payload: 刷新请求体,包含 refresh token。
+        db: 异步数据库会话,用于根据 token 中的 sub 加载用户。
+
+    返回值:
+        AccessTokenResponse: 包含新的访问令牌与过期时间。
+
+    抛出:
+        Unauthorized: 当 token 类型不是 refresh 时抛出。
+    """
     token_payload = decode_token(payload.refresh_token)
     if token_payload.get("type") != "refresh":
         raise Unauthorized("Token is not a refresh token")
@@ -131,6 +172,15 @@ async def me(
     request: Request,
     user: User = Depends(get_current_user),
 ) -> CurrentUserResponse:
+    """查询当前登录用户信息 — 返回当前 token 对应的用户与租户上下文。
+
+    参数:
+        request: FastAPI 请求对象,用于读取 request.state.tenant_id 与 roles。
+        user: 通过 get_current_user 依赖注入得到的当前用户。
+
+    返回值:
+        CurrentUserResponse: 包含当前用户基本信息、租户 ID 与角色集合。
+    """
     return CurrentUserResponse(
         user=UserInfo(
             id=user.id,

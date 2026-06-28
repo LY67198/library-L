@@ -1,3 +1,4 @@
+"""v1 路由汇总 — 将鉴权、馆藏、座位、预约、管理策略、健康检查等子路由统一注册到 /api/v1 前缀下。"""
 from __future__ import annotations
 
 from fastapi import APIRouter
