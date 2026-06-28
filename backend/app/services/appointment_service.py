@@ -1,3 +1,4 @@
+"""预约领域服务 — 业务编排,实现 Redis 锁 + PG 乐观锁的两层并发防御。"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta

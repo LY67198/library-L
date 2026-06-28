@@ -1,3 +1,4 @@
+"""政策仓储 — 政策表的 CRUD 与版本号管理。"""
 from __future__ import annotations
 
 from uuid import UUID

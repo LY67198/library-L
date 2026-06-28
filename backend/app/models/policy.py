@@ -1,11 +1,10 @@
+"""政策模型 — 租户内的图书馆政策/规章条目,支持分类、生效期与版本。"""
 from __future__ import annotations
 
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Date, DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-
-"""政策模型 — 租户内的图书馆政策/规章条目,支持分类、生效期与版本。"""
 
 from app.models.base import TenantScopedMixin
 

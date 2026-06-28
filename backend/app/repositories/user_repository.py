@@ -1,3 +1,4 @@
+"""用户仓储 — 用户表的 CRUD 与学号查询。"""
 from __future__ import annotations
 
 from datetime import datetime, timezone

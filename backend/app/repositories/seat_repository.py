@@ -1,3 +1,4 @@
+"""座位仓储 — 座位表的查询(按 ID / 全量 / 楼层)。"""
 from __future__ import annotations
 
 from uuid import UUID

@@ -1,3 +1,4 @@
+"""图书仓储 — 图书表的 CRUD、分页列表与关键词搜索。"""
 from __future__ import annotations
 
 from uuid import UUID

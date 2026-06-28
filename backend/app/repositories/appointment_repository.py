@@ -1,3 +1,4 @@
+"""预约仓储 — 预约表的 CRUD 与乐观锁取消。"""
 from __future__ import annotations
 
 from datetime import datetime

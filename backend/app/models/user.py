@@ -1,11 +1,10 @@
+"""用户模型 — 租户内的系统使用者(学生/教职工/馆员/管理员)。"""
 from __future__ import annotations
 
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
-
-"""用户模型 — 租户内的系统使用者(学生/教职工/馆员/管理员)。"""
 
 from app.models.base import TenantScopedMixin
 from app.models.enums import UserRole, UserStatus

@@ -1,9 +1,8 @@
+"""座位模型 — 租户内的图书馆座位资源,记录楼层、分区与设备信息。"""
 from __future__ import annotations
 
 from sqlalchemy import BigInteger, Boolean, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
-
-"""座位模型 — 租户内的图书馆座位资源,记录楼层、分区与设备信息。"""
 
 from app.models.base import TenantScopedMixin
 from app.models.enums import SeatStatus, SeatZone

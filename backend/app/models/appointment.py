@@ -1,3 +1,4 @@
+"""预约模型 — 用户对座位/图书/研讨间等资源的时间段预约,带乐观锁版本号。"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,8 +13,6 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-
-"""预约模型 — 用户对座位/图书/研讨间等资源的时间段预约,带乐观锁版本号。"""
 
 from app.models.base import TenantScopedMixin
 from app.models.enums import AppointmentResource, AppointmentStatus

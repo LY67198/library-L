@@ -1,3 +1,4 @@
+"""图书领域服务 — 图书 CRUD 业务编排,含副本数一致性校验。"""
 from __future__ import annotations
 
 from uuid import UUID

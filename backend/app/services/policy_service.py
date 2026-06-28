@@ -1,3 +1,4 @@
+"""政策领域服务 — 政策 CRUD,自动维护 BM25 + ChromaDB 双引擎索引。"""
 from __future__ import annotations
 
 from uuid import UUID

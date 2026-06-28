@@ -1,3 +1,4 @@
+"""用户领域服务 — 注册、登录认证、查询等业务编排。"""
 from __future__ import annotations
 
 from uuid import UUID
