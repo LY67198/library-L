@@ -3,11 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import secrets
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
-from typing import Any, TypeVar
-
-T = TypeVar("T")
+from typing import Any
 
 
 class LockAcquireError(Exception):
