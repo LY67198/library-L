@@ -1,0 +1,1 @@
+"""RAG pipeline (loaders, chunker, BM25, dense, RRF, rerank, hybrid)."""
