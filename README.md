@@ -1,101 +1,119 @@
-# Deep Research Scaffold
+# Library Intelligent Service / 图书馆智能服务系统
 
-This is a clean scaffold extracted from the `deep_research` architecture.
-It keeps the reusable shape and removes demo-specific providers, heavy
-external services, generated files, and course-specific comments.
+> 面向高校图书馆场景的 AI Agent + RAG 全栈应用,支持馆藏检索、座位预约、政策咨询与通用对话。
 
-## Architecture
+## ✨ 核心能力
 
-```text
-front/
-  Vite + Vue client
-  - submits research requests
-  - consumes Server-Sent Events
+- 📚 **馆藏检索** — 自然语言查询图书(题名 / 作者 / ISBN / 主题)
+- 🪑 **座位预约** — 实时查询空闲座位、预约 / 取消
+- 📋 **政策咨询** — 借阅规则、开放时间、违章处理
+- 💬 **通用对话** — 闲聊兜底与意图分发
 
-app/
-  app_main.py
-  backend/
-    config/      FastAPI/runtime settings
-    router/      health and research endpoints
-    schemas/     request/response models
-    service/     workflow service and SSE bridge
-  research_agents/
-    config.py    workflow config loader
-    state.py     LangGraph state contract
-    graph.py     node wiring and route decisions
-    nodes.py     node implementations
-    tools.py     pluggable retrieval/search tools
-    adapters/    LLM adapter protocol and default stub
-    memory/      memory interface and in-memory implementation
-```
+## 🛠 技术栈
 
-## Workflow
+| 层 | 选型 |
+|----|------|
+| 后端 | FastAPI · LangGraph v1 (StateGraph + Command) |
+| LLM | DeepSeek (OpenAI 兼容) |
+| Embedding / Rerank | Qwen / DashScope |
+| 数据库 | PostgreSQL 15 + SQLAlchemy 2.0 async + asyncpg |
+| 缓存 / 分布式锁 | Redis 7 |
+| 异步任务 | Celery 5 |
+| 向量库 | ChromaDB |
+| 关键词检索 | Whoosh + jieba |
+| MCP | FastMCP (独立进程) + langchain-mcp-adapters |
+| 可观测性 | OpenTelemetry SDK + Jaeger (OTLP/gRPC) |
+| 评估 | Ragas |
+| 前端 | Vue 3 · Element Plus · Pinia · Vite |
+| 鉴权 | JWT HS256 (双 token: access 1h + refresh 30d) |
+| 部署 | Docker Compose |
 
-```text
-START
-  -> intent
-    -> direct_answer -> END
-    -> plan
-      -> web_search
-      -> local_rag
-      -> evidence_judge
-      -> analyze
-        -> reflect -> web_search/local_rag
-        -> write -> END
-```
+## 🚀 快速开始
 
-The default implementation is deterministic and runs without API keys. Replace
-the adapters in `app/research_agents/adapters/` and `app/research_agents/tools.py`
-when you connect a real LLM, web search, vector database, or long-term memory.
+### 环境要求
 
-## Backend Quick Start
+- Python ≥ 3.12
+- Node.js ≥ 18(前端)
+- [uv](https://github.com/astral-sh/uv)(Python 包管理)
 
-```powershell
-cd deep_research_scaffold
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+### 后端
+
+```bash
+# 安装依赖
+uv sync
+
+# 启动开发服务器
 cd app
 uvicorn app_main:app --reload --port 8000
 ```
 
-Health check:
+健康检查:
 
-```powershell
+```bash
 curl http://127.0.0.1:8000/api/v1/health
 ```
 
-Run once:
+### 前端
 
-```powershell
-curl -X POST http://127.0.0.1:8000/api/v1/research/run `
-  -H "Content-Type: application/json" `
-  -d "{\"query\":\"Compare RAG and multi-agent research workflows\"}"
-```
-
-## Frontend Quick Start
-
-```powershell
-cd deep_research_scaffold/front
+```bash
+cd front
 npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api` to `http://127.0.0.1:8000`.
+Vite 开发服务器默认代理 `/api` 到 `http://127.0.0.1:8000`。
 
-## Extension Points
+## ⚙️ 配置
 
-- `LLMClient` in `app/research_agents/adapters/llm.py`
-- `SearchTools` in `app/research_agents/tools.py`
-- `MemoryStore` in `app/research_agents/memory/store.py`
-- `ResearchState` in `app/research_agents/state.py`
-- route conditions in `app/research_agents/graph.py`
+```bash
+cp .env.example .env
+cp config.example.json config.json
+```
 
-## Production Checklist
+需要的环境变量(写入 `.env`):
 
-- Replace `RuleBasedLLMClient` with a real provider.
-- Add source allowlists, citation validation, and retry policies.
-- Move memory from `InMemoryMemoryStore` to Redis/Postgres/vector DB.
-- Add tests for route decisions, JSON parsing, citations, and SSE events.
-- Keep secrets in `.env`, never in `config.json`.
+| 变量 | 说明 |
+|------|------|
+| `APP_ENV` | `development` / `production` |
+| `HOST` / `PORT` | 服务监听地址 |
+| `CORS_ALLOW_ORIGINS` | 允许的前端源(逗号分隔) |
+| `CONFIG_PATH` | 业务配置文件路径 |
 
+## 📁 项目结构
+
+```
+.
+├── app/                    # FastAPI 后端
+│   ├── app_main.py         # 入口
+│   ├── backend/            # 路由 / 配置 / schemas / 服务编排
+│   └── research_agents/    # LangGraph 工作流 (节点 / 状态 / 工具 / 适配器)
+├── front/                  # Vue 3 前端 (用户端 + 管理端)
+├── pyproject.toml          # 依赖声明
+├── uv.lock                 # 依赖锁 (236 packages)
+├── config.example.json     # 业务配置示例
+└── .env.example            # 环境变量示例
+```
+
+## 🏗 架构概览
+
+```
+┌──────────┐    SSE     ┌─────────────┐    Command     ┌──────────────────┐
+│  Vue 3   │ ◄────────► │   FastAPI   │ ◄────────────► │  LangGraph v1    │
+│ Frontend │   HTTP     │   Backend   │                │   Multi-Agent    │
+└──────────┘            └──────┬──────┘                └────────┬─────────┘
+                               │                               │
+                  ┌────────────┼────────────┐                  │
+                  ▼            ▼            ▼                  ▼
+              PostgreSQL    Redis 7     ChromaDB         MCP Server
+              SQLAlchemy   缓存/锁       Whoosh           (5 Tools)
+              asyncpg                   jieba
+```
+
+## 📦 分支策略
+
+- `main` — 默认分支,稳定版本
+- `dev` — 日常开发分支
+
+## 📜 许可证
+
+MIT
