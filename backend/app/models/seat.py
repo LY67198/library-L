@@ -3,11 +3,15 @@ from __future__ import annotations
 from sqlalchemy import BigInteger, Boolean, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+"""座位模型 — 租户内的图书馆座位资源,记录楼层、分区与设备信息。"""
+
 from app.models.base import TenantScopedMixin
 from app.models.enums import SeatStatus, SeatZone
 
 
 class Seat(TenantScopedMixin):
+    """座位实体:隶属于某个租户,编码在租户内唯一,含楼层/分区/坐标等。"""
+
     __tablename__ = "seats"
     __table_args__ = (
         UniqueConstraint("tenant_id", "code", name="uq_seats_tenant_code"),

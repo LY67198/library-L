@@ -5,10 +5,14 @@ from datetime import datetime
 from sqlalchemy import BigInteger, Date, DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+"""政策模型 — 租户内的图书馆政策/规章条目,支持分类、生效期与版本。"""
+
 from app.models.base import TenantScopedMixin
 
 
 class Policy(TenantScopedMixin):
+    """政策实体:隶属于某个租户,记录规章标题/正文/分类/生效期与版本号。"""
+
     __tablename__ = "policies"
     __table_args__ = (Index("idx_policies_tenant_category", "tenant_id", "category"),)
 

@@ -1,3 +1,5 @@
+"""ORM 基础类与混入 — 提供 DeclarativeBase、时间戳混入、多租户字段混入与可复用 Annotated 类型。"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,12 +12,15 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """SQLAlchemy declarative base."""
+    """SQLAlchemy 声明式基类,所有 ORM 模型均继承自该类。"""
 
 
 class TimestampMixin(Base):
-    """Adds created_at and updated_at columns. Inherits Base so models
-    that use only this mixin (without explicit Base) still register with metadata."""
+    """为模型添加 ``created_at`` 与 ``updated_at`` 时间戳字段。
+
+    继承自 :class:`Base`,使仅使用本混入(不显式继承 ``Base``)的模型
+    仍能注册到 ``Base.metadata`` 中。
+    """
 
     __abstract__ = True
 
@@ -33,7 +38,7 @@ class TimestampMixin(Base):
 
 
 class TenantScopedMixin(TimestampMixin):
-    """Adds tenant_id FK and indexes every column with it."""
+    """为模型添加 ``tenant_id`` 外键字段,并为该字段建立索引以支持多租户查询。"""
 
     __abstract__ = True
 

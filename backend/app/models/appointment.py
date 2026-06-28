@@ -13,11 +13,20 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+"""预约模型 — 用户对座位/图书/研讨间等资源的时间段预约,带乐观锁版本号。"""
+
 from app.models.base import TenantScopedMixin
 from app.models.enums import AppointmentResource, AppointmentStatus
 
 
 class Appointment(TenantScopedMixin):
+    """预约实体:隶属于某个租户,记录用户对某类资源在时间窗口内的占用。
+
+    约束:
+        - ``end_time`` 必须晚于 ``start_time``(数据库层 CHECK 约束)
+        - ``version`` 字段用于乐观锁,配合 Redis 分布式锁实现并发两层防御
+    """
+
     __tablename__ = "appointments"
     __table_args__ = (
         CheckConstraint("end_time > start_time", name="ck_appt_end_after_start"),

@@ -1,3 +1,5 @@
+"""ORM 模型聚合入口 — 统一导出 Base、混入类、所有业务表与枚举类型。"""
+
 from app.models.appointment import Appointment
 from app.models.base import Base, TenantScopedMixin, TimestampMixin
 from app.models.book import Book
