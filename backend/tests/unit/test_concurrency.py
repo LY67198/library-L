@@ -1,4 +1,4 @@
-"""DistributedLock tests use fakeredis to avoid real Redis dependency."""
+"""分布式锁测试 — 使用内存版 FakeRedis 桩模拟 SET NX PX / Lua 释放脚本,避免真实 Redis 依赖。"""
 import asyncio
 import pytest
 
@@ -6,7 +6,7 @@ from app.core.concurrency import LockAcquireError, DistributedLock
 
 
 class FakeRedis:
-    """Minimal Redis stub: SET NX PX, EVAL, GET, DELETE."""
+    """最小化 Redis 桩:仅实现 SET NX PX、EVAL、GET、DELETE 四个方法。"""
 
     def __init__(self):
         self.store: dict[str, tuple[str, int]] = {}  # key -> (value, expire_ms)
@@ -41,6 +41,7 @@ class FakeRedis:
 
 
 async def test_lock_acquire_release():
+    """测试锁的获取与释放:__aenter__ 后 key 存在,__aexit__ 后 key 被删除。"""
     r = FakeRedis()
     lock = DistributedLock(r, key="lock:1", ttl_ms=5000)
     await lock.__aenter__()
@@ -50,6 +51,7 @@ async def test_lock_acquire_release():
 
 
 async def test_lock_already_held_raises():
+    """测试锁被他人持有时:再次获取应抛出 LockAcquireError,实现互斥语义。"""
     r = FakeRedis()
     await r.set("lock:1", "other-token", nx=True, px=5000)
     lock = DistributedLock(r, key="lock:1", ttl_ms=5000)
@@ -58,6 +60,7 @@ async def test_lock_already_held_raises():
 
 
 async def test_lock_only_holder_can_release():
+    """测试只有持锁者能释放:锁被覆盖后原 holder 退出时不能误删他人的 token。"""
     r = FakeRedis()
     # Holder A acquires
     lock_a = DistributedLock(r, key="lock:1", ttl_ms=5000)

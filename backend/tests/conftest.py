@@ -1,3 +1,4 @@
+"""pytest 共享夹具 — 集成测试共用的 PostgreSQL 容器、Settings、DB engine/session、HTTPX Client 配置。"""
 from __future__ import annotations
 
 import asyncio
@@ -18,6 +19,7 @@ from app.models import Base
 
 @pytest.fixture(scope="session")
 def event_loop():
+    """整个测试会话共享的 asyncio 事件循环。"""
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -25,6 +27,7 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 def postgres_container() -> Any:
+    """基于 testcontainers 启动的 PostgreSQL 15 容器,会话级共享。"""
     pg = PostgresContainer("postgres:15-alpine")
     pg.start()
     yield pg
@@ -33,7 +36,7 @@ def postgres_container() -> Any:
 
 @pytest.fixture(scope="session")
 def test_settings(postgres_container: Any) -> Settings:
-    """Settings override pointing to the test PostgreSQL container."""
+    """指向测试 PostgreSQL 容器、并在测试环境使用的 Settings 覆盖实例。"""
     url = postgres_container.get_connection_url()
     # Convert postgresql:// to postgresql+asyncpg://
     async_url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
@@ -53,6 +56,7 @@ def test_settings(postgres_container: Any) -> Settings:
 
 @pytest_asyncio.fixture(scope="session")
 async def engine(test_settings: Settings):
+    """基于测试数据库 URL 创建的 SQLAlchemy 异步引擎,启动时建表,会话结束释放。"""
     eng = create_async_engine(test_settings.database_url)
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -62,6 +66,7 @@ async def engine(test_settings: Settings):
 
 @pytest_asyncio.fixture
 async def db_session(engine) -> AsyncIterator[AsyncSession]:
+    """每个测试函数独立的 AsyncSession,函数结束回滚并清理除 tenants 之外的所有表。"""
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with factory() as session:
         yield session
@@ -75,7 +80,7 @@ async def db_session(engine) -> AsyncIterator[AsyncSession]:
 
 @pytest_asyncio.fixture
 async def client(test_settings: Settings, engine) -> AsyncIterator[AsyncClient]:
-    """HTTPX client with overridden DB session."""
+    """基于 ASGI 传输、覆写 get_db_dependency 的 HTTPX AsyncClient,用于调用 FastAPI。"""
 
     # Override get_settings
     get_settings.cache_clear()

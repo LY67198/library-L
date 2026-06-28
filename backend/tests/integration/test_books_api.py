@@ -1,3 +1,4 @@
+"""图书 API 集成测试 — 验证空列表、student 角色无权创建、librarian 创建并可被列出。"""
 from uuid import UUID
 
 import pytest
@@ -6,6 +7,7 @@ pytestmark = pytest.mark.integration
 
 
 async def _seed_tenant(db_session):
+    """辅助函数:确保默认 tenant 存在,books 测试统一使用。"""
     from app.models import Tenant
     tid = UUID("00000000-0000-0000-0000-000000000001")
     existing = await db_session.get(Tenant, tid)
@@ -17,6 +19,7 @@ async def _seed_tenant(db_session):
 
 
 async def _register_user(client, student_no="2024001"):
+    """辅助函数:注册一个用户并返回其 access_token,方便后续带 Bearer 头调用。"""
     response = await client.post(
         "/api/v1/auth/register",
         json={"student_no": student_no, "password": "test_pass_123", "full_name": "Test"},
@@ -26,6 +29,7 @@ async def _register_user(client, student_no="2024001"):
 
 
 async def test_list_books_empty(client, db_session):
+    """测试空列表场景:注册后调用 /books 应返回 200,items=[] 且 total=0。"""
     await _seed_tenant(db_session)
     token = await _register_user(client)
     response = await client.get("/api/v1/books", headers={"Authorization": f"Bearer {token}"})
@@ -36,6 +40,7 @@ async def test_list_books_empty(client, db_session):
 
 
 async def test_create_book_requires_librarian(client, db_session):
+    """测试角色权限:student 角色尝试创建图书应返回 403,创建接口仅对 librarian 开放。"""
     await _seed_tenant(db_session)
     token = await _register_user(client, student_no="2024002")  # student role
     response = await client.post(
@@ -47,6 +52,7 @@ async def test_create_book_requires_librarian(client, db_session):
 
 
 async def test_create_then_list_book(client, db_session):
+    """测试 librarian 创建图书后能列出:覆盖提权 → 重登 → 创建 → 列表完整流程,新书应出现在 items 中。"""
     await _seed_tenant(db_session)
     token = await _register_user(client, student_no="2024003")
     # Need to upgrade to librarian role — directly via DB

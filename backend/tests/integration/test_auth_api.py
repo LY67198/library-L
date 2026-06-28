@@ -1,3 +1,4 @@
+"""认证 API 集成测试 — 验证 register / login / me 的成功、冲突、校验失败与未鉴权场景。"""
 from uuid import UUID
 
 import pytest
@@ -6,7 +7,7 @@ pytestmark = pytest.mark.integration
 
 
 async def _seed_default_tenant(db_session):
-    """Helper: ensure the default tenant exists for auth tests."""
+    """辅助函数:确保默认 tenant 记录存在,auth 相关测试统一通过该 fixture 初始化。"""
     from app.models import Tenant
 
     existing = await db_session.get(Tenant, UUID("00000000-0000-0000-0000-000000000001"))
@@ -25,6 +26,7 @@ async def _seed_default_tenant(db_session):
 
 
 async def test_register_new_user_returns_tokens(client, db_session):
+    """测试新用户注册:返回 201,bearer token、access/refresh token 与 user 字段,且角色默认为 student。"""
     await _seed_default_tenant(db_session)
     response = await client.post(
         "/api/v1/auth/register",
@@ -46,6 +48,7 @@ async def test_register_new_user_returns_tokens(client, db_session):
 
 
 async def test_register_duplicate_student_no_conflict(client, db_session):
+    """测试重复学号注册:首次返回 201,再次用相同学号注册应返回 409 conflict。"""
     await _seed_default_tenant(db_session)
     payload = {
         "student_no": "2024002",
@@ -61,6 +64,7 @@ async def test_register_duplicate_student_no_conflict(client, db_session):
 
 
 async def test_register_validation_error_short_password(client, db_session):
+    """测试短密码注册:服务端应返回 422 validation_error,防止弱密码。"""
     await _seed_default_tenant(db_session)
     response = await client.post(
         "/api/v1/auth/register",
@@ -75,6 +79,7 @@ async def test_register_validation_error_short_password(client, db_session):
 
 
 async def test_login_success(client, db_session):
+    """测试登录成功:用注册时的 student_no + 正确密码登录,返回 200 和 access_token。"""
     await _seed_default_tenant(db_session)
     await client.post(
         "/api/v1/auth/register",
@@ -95,6 +100,7 @@ async def test_login_success(client, db_session):
 
 
 async def test_login_wrong_password_returns_401(client, db_session):
+    """测试错误密码登录:应返回 401 unauthorized,错误码 unauthorized。"""
     await _seed_default_tenant(db_session)
     await client.post(
         "/api/v1/auth/register",
@@ -114,6 +120,7 @@ async def test_login_wrong_password_returns_401(client, db_session):
 
 
 async def test_me_returns_current_user(client, db_session):
+    """测试 /auth/me:携带 access token 应返回当前用户信息,角色为 student。"""
     await _seed_default_tenant(db_session)
     reg = await client.post(
         "/api/v1/auth/register",
@@ -135,6 +142,7 @@ async def test_me_returns_current_user(client, db_session):
 
 
 async def test_me_without_token_returns_401(client):
+    """测试 /auth/me 未鉴权:无 token 应返回 401 unauthorized,拦截未登录访问。"""
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "unauthorized"

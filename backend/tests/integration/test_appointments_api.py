@@ -1,3 +1,4 @@
+"""座位预约 API 集成测试 — 验证单人预约成功、同一时间段被再次预约时返回 409 冲突。"""
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -7,6 +8,7 @@ pytestmark = pytest.mark.integration
 
 
 async def _seed_tenant(db_session):
+    """辅助函数:确保默认 tenant 存在,供座位预约测试复用。"""
     from app.models import Tenant
     tid = UUID("00000000-0000-0000-0000-000000000001")
     if not await db_session.get(Tenant, tid):
@@ -16,6 +18,7 @@ async def _seed_tenant(db_session):
 
 
 async def _register_student(client, student_no):
+    """辅助函数:注册一个学生用户并返回 access_token,用于预约接口鉴权。"""
     r = await client.post(
         "/api/v1/auth/register",
         json={"student_no": student_no, "password": "test_pass_123", "full_name": student_no},
@@ -24,6 +27,7 @@ async def _register_student(client, student_no):
 
 
 async def _create_seat(db_session, code="A-101"):
+    """辅助函数:在测试库中创建一个可用座位并返回 ORM 实例。"""
     from app.models import Seat
     seat = Seat(
         tenant_id=UUID("00000000-0000-0000-0000-000000000001"),
@@ -43,6 +47,7 @@ async def _create_seat(db_session, code="A-101"):
 
 
 async def test_book_seat_happy_path(client, db_session):
+    """测试预约正常路径:学生成功预约一个空闲座位,返回 201 且 status=confirmed。"""
     await _seed_tenant(db_session)
     seat = await _create_seat(db_session, code="A-101")
     token = await _register_student(client, "2024100")
@@ -59,6 +64,7 @@ async def test_book_seat_happy_path(client, db_session):
 
 
 async def test_book_seat_conflict_returns_409(client, db_session):
+    """测试同座位时间冲突:第一位学生预约成功后,第二位学生在同时段再次预约应返回 409 conflict。"""
     await _seed_tenant(db_session)
     seat = await _create_seat(db_session, code="A-102")
     token1 = await _register_student(client, "2024101")
