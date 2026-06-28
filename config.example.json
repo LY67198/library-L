@@ -1,0 +1,10 @@
+{
+  "app_name": "Deep Research Scaffold",
+  "model": "stub",
+  "max_iterations": 2,
+  "enable_memory": true,
+  "memory_top_k": 6,
+  "web_search_enabled": true,
+  "local_rag_enabled": true
+}
+
