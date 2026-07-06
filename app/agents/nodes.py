@@ -18,6 +18,8 @@ class LibraryNodeContext:
     llm: LLMClient
     retriever: Retriever
     book_lookup: Retriever
+    auth_service: object | None = None    # Phase 2a: AuthService
+    seat_service: object | None = None    # Phase 2a: SeatService
 
 
 # --- 主图节点 ---
@@ -145,3 +147,52 @@ def _fallback_classify(query: str) -> str:
     if any(w in lowered for w in ["座位", "预约", "取消"]):
         return "book_seat"
     return "other"
+
+
+# --- Reservation 子图节点（Phase 2a） ---
+
+def reservation_understand_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """预约子图入口 — 解析用户消息，提取结构化参数"""
+    intent = state["intent"]
+    query = state["query"]
+
+    if intent == "book_seat":
+        params = context.llm.extract_booking_params(query)
+    elif intent == "cancel_appointment":
+        params = context.llm.extract_cancel_params(query)
+    else:
+        params = {"query": query}
+
+    return {"context": {"intent": intent, "reservation_params": params}}
+
+
+def reservation_book_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """预约座位节点 — 返回指引（实际预约通过 REST API）"""
+    params = state.get("context", {}).get("reservation_params", {})
+    date_hint = params.get("date", "请指定日期")
+    slot_hint = params.get("slot", "请选择时段")
+    floor_hint = f"{params['floor']}楼" if params.get("floor") else "请指定楼层"
+
+    response = (
+        f"根据您的需求：{floor_hint}，{date_hint}，{slot_hint}时段。"
+        f"请在座位列表中选择具体座位进行预约。"
+    )
+    return {"response": response, "sources": []}
+
+
+def reservation_query_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """查询预约节点 — 返回指引"""
+    response = "请在「我的预约」页面查看您的预约记录。"
+    return {"response": response, "sources": []}
+
+
+def reservation_cancel_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """取消预约节点 — 返回指引"""
+    response = "请在「我的预约」中找到对应预约，点击取消即可。"
+    return {"response": response, "sources": []}
+
+
+def reservation_format_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """格式化预约结果"""
+    response = state.get("response", "")
+    return {"response": response, "sources": state.get("sources", [])}

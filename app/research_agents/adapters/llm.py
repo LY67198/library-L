@@ -26,6 +26,13 @@ class LLMClient(Protocol):
 
     def stub_message(self, intent: str) -> str: ...
 
+    # --- 图书馆预约方法（Phase 2a 新增） ---
+    def extract_booking_params(self, query: str) -> dict: ...
+
+    def extract_cancel_params(self, query: str) -> dict: ...
+
+    def format_reservation_response(self, intent: str, result: dict) -> str: ...
+
 
 class RuleBasedLLMClient:
     """Small deterministic adapter so the scaffold works without API keys."""
@@ -163,4 +170,65 @@ class RuleBasedLLMClient:
             "profile_query": "读者画像功能正在开发中，敬请期待。",
         }
         return messages.get(intent, "该功能正在开发中，敬请期待。")
+
+    # --- 图书馆预约方法（Phase 2a 新增） ---
+
+    def extract_booking_params(self, query: str) -> dict:
+        """从用户消息中提取预约参数 — 关键词规则版"""
+        lowered = query.lower()
+        params = {}
+
+        if "今天" in lowered:
+            params["date"] = "today"
+        elif "明天" in lowered:
+            params["date"] = "tomorrow"
+        elif "后天" in lowered:
+            params["date"] = "day_after_tomorrow"
+
+        if any(w in lowered for w in ["上午", "早上"]):
+            params["slot"] = "morning"
+        elif any(w in lowered for w in ["下午", "中午"]):
+            params["slot"] = "afternoon"
+        elif any(w in lowered for w in ["晚上", "傍晚"]):
+            params["slot"] = "evening"
+
+        for i in range(1, 10):
+            if f"{i}楼" in query or f"{i}层" in query:
+                params["floor"] = i
+                break
+
+        return params
+
+    def extract_cancel_params(self, query: str) -> dict:
+        """从用户消息中提取取消参数"""
+        return {"query": query}
+
+    def format_reservation_response(self, intent: str, result: dict) -> str:
+        """格式化预约操作结果为自然语言回复"""
+        if intent == "book_seat":
+            return (
+                f"预约成功！座位：{result.get('floor_name', '')}-"
+                f"{result.get('zone_name', '')}-{result.get('seat_number', '')}，"
+                f"日期：{result.get('date', '')}，时段：{result.get('slot', '')}"
+            )
+        elif intent == "query_appointment":
+            appts = result.get("appointments", [])
+            if not appts:
+                return "您目前没有预约记录。"
+            lines = ["您的预约记录："]
+            for a in appts:
+                slot_label = (
+                    "上午" if a["slot"] == "morning"
+                    else "下午" if a["slot"] == "afternoon"
+                    else "晚上"
+                )
+                lines.append(
+                    f"- {a['floor_name']}-{a['zone_name']}-{a['seat_number']} "
+                    f"({a['date']} {slot_label}) "
+                    f"[{a['appointment_id']}]"
+                )
+            return "\n".join(lines)
+        elif intent == "cancel_appointment":
+            return f"预约已取消（{result.get('appointment_id', '')}）。"
+        return "操作完成。"
 

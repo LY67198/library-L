@@ -13,7 +13,11 @@ from .nodes import (
     policy_retrieval_node,
     profile_stub_node,
     recommend_retrieve_node,
-    reservation_stub_node,
+    reservation_book_node,
+    reservation_cancel_node,
+    reservation_format_node,
+    reservation_query_node,
+    reservation_understand_node,
     retrieval_understand_node,
 )
 from .state import LibraryState
@@ -26,7 +30,7 @@ def build_library_graph(context: LibraryNodeContext):
     # --- 节点注册 ---
     graph.add_node("intent_classifier", lambda s: intent_classifier_node(s, context))
     graph.add_node("retrieval_subgraph", _build_retrieval_subgraph(context))
-    graph.add_node("reservation_stub", lambda s: reservation_stub_node(s, context))
+    graph.add_node("reservation_subgraph", _build_reservation_subgraph(context))
     graph.add_node("profile_stub", lambda s: profile_stub_node(s, context))
     graph.add_node("direct_answer", lambda s: direct_answer_node(s, context))
 
@@ -37,13 +41,13 @@ def build_library_graph(context: LibraryNodeContext):
         _route_by_subgraph,
         {
             "retrieval": "retrieval_subgraph",
-            "reservation": "reservation_stub",
+            "reservation": "reservation_subgraph",
             "profile": "profile_stub",
             "direct": "direct_answer",
         },
     )
     graph.add_edge("retrieval_subgraph", END)
-    graph.add_edge("reservation_stub", END)
+    graph.add_edge("reservation_subgraph", END)
     graph.add_edge("profile_stub", END)
     graph.add_edge("direct_answer", END)
 
@@ -116,3 +120,42 @@ def _error_response_node(state: LibraryState) -> dict:
     """错误降级节点 — 返回兜底消息"""
     msg = state.get("fallback_response", "服务异常，请稍后重试。")
     return {"response": msg, "sources": []}
+
+
+def _build_reservation_subgraph(context: LibraryNodeContext):
+    """构建预约子图：understand → book/query/cancel → format"""
+    sub = StateGraph(LibraryState)
+
+    sub.add_node("understand_booking", lambda s: reservation_understand_node(s, context))
+    sub.add_node("book_seat", lambda s: reservation_book_node(s, context))
+    sub.add_node("query_appointments", lambda s: reservation_query_node(s, context))
+    sub.add_node("cancel_appointment", lambda s: reservation_cancel_node(s, context))
+    sub.add_node("format_response", lambda s: reservation_format_node(s, context))
+
+    sub.add_edge(START, "understand_booking")
+    sub.add_conditional_edges(
+        "understand_booking",
+        _route_reservation_branch,
+        {
+            "book": "book_seat",
+            "query": "query_appointments",
+            "cancel": "cancel_appointment",
+        },
+    )
+    sub.add_edge("book_seat", "format_response")
+    sub.add_edge("query_appointments", "format_response")
+    sub.add_edge("cancel_appointment", "format_response")
+    sub.add_edge("format_response", END)
+
+    return sub.compile()
+
+
+def _route_reservation_branch(state: LibraryState) -> str:
+    """预约子图路由：根据意图选择对应节点"""
+    intent = state.get("intent", "book_seat")
+    mapping = {
+        "book_seat": "book",
+        "query_appointment": "query",
+        "cancel_appointment": "cancel",
+    }
+    return mapping.get(intent, "book")
