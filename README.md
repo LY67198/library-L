@@ -75,6 +75,8 @@ tests/                        # 57 tests
 
 - Python 3.10+
 - Node.js 18+
+- PostgreSQL 15+（需要 `asyncpg` 驱动，DATABASE_URL 使用 `postgresql+asyncpg://` 格式）
+- Redis 6.0+（5.x 可运行但需配合 `protocol=2` 兼容设置）
 
 ### 1. 后端启动
 
@@ -82,7 +84,13 @@ tests/                        # 57 tests
 cd deep_research_scaffold
 uv sync
 cp .env.example .env
-# 编辑 .env 填入 API Key
+# 编辑 .env 填入 API Key，确认 DATABASE_URL 使用 postgresql+asyncpg:// 格式
+
+# 首次运行：数据库迁移 + 种子数据
+alembic upgrade head
+python scripts/seed.py
+
+# 启动
 cd app
 uv run uvicorn app_main:app --reload --port 8000
 ```

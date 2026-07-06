@@ -34,7 +34,7 @@ def _get_redis() -> aioredis.Redis:
     global _REDIS_CLIENT
     if _REDIS_CLIENT is None:
         settings = get_settings()
-        _REDIS_CLIENT = aioredis.from_url(settings.redis_url, decode_responses=False)
+        _REDIS_CLIENT = aioredis.from_url(settings.redis_url, decode_responses=False, protocol=2)
     return _REDIS_CLIENT
 
 

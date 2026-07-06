@@ -169,9 +169,9 @@ front/src/
 3. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 4. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
 
-## 断点续接 — 2026-07-06（Phase 2b 完成）
+## 断点续接 — 2026-07-06（Phase 2b 完成 + 环境修复）
 
-**当前状态:** Phase 2b 座位可视化前端已完成，11 commits，57 tests passed，前端 build 成功。
+**当前状态:** Phase 2b 座位可视化前端已完成，11 commits，57 tests passed，前端 build 成功。本地运行环境已修复，全链路（注册/登录/座位列表/预约/取消）可通。
 
 **已实现（全部）:**
 - Auth: POST /api/v1/auth/register, login, refresh, GET /me
@@ -180,12 +180,38 @@ front/src/
 - LLM: extract_booking_params, extract_cancel_params, format_reservation_response
 - 前端: Vue 3 + Element Plus 座位可视化（网格浏览 → 时段筛选 → 一键预约）
 
+**本次环境修复（2026-07-06）:**
+- LangGraph 版本: `>=0.2.0` → `>=1.2.0`（最新稳定版）
+- `.env` / `.env.example` DATABASE_URL: `postgresql://` → `postgresql+asyncpg://`（必须带异步驱动前缀）
+- schema: `username` min_length: 4 → 2（兼容中文名）
+- Redis: `from_url` 加 `protocol=2`（兼容 Redis 5.x，不支持 RESP3 的 HELLO 命令）
+- 数据库迁移: 旧迁移 `upgrade()` 为空，重建为 `5f8884470c81_initial_all_tables.py`
+- 种子数据: 新建 `scripts/seed.py`（ORM 方式插入 2 层楼 + 3 区域 + 26 座位）
+
 **已知注意事项:**
 - bcrypt 直接使用（passlib 5.x 不兼容）
 - pytest 需要 `pytest-asyncio` + `asyncio_mode = "auto"`（已配置）
 - Redis 锁测试用 fakeredis，`acquire()` 返回 `result is not None`
 - 远程: `gitee` + `github`，推送用 `git push gitee dev && git push github dev`
 - 前端: Element Plus chunk 较大（~1MB），后续可配置 manualChunks 优化
+- Redis 本地为 5.0.14，生产部署建议 ≥6.0
+- PostgreSQL 本地为 zip 包安装（`D:\P_SQL\...`），非服务模式，需手动 `pg_ctl start`
+
+## 数据库初始化
+
+```bash
+# 1. 启动 PostgreSQL
+$env:PGDATA = "D:\P_SQL\postgresql-16.14-1-windows-x64-binaries\pgsql\data"
+D:\P_SQL\postgresql-16.14-1-windows-x64-binaries\pgsql\bin\pg_ctl start
+
+# 2. 创建库和用户（首次）
+"D:\P_SQL\...\bin\psql.exe" -U postgres
+# CREATE USER library WITH PASSWORD 'library123';
+# CREATE DATABASE library OWNER library;
+
+# 3. 迁移 + 种子数据
+alembic upgrade head && python scripts/seed.py
+```
 
 ## 关键文档
 
