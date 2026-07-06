@@ -179,3 +179,28 @@ async def test_unauthorized_access(db_session):
         assert resp.status_code == 401
 
     app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_list_seats_anonymous(db_session, redis_client):
+    """匿名用户可浏览座位，booked_by_me 为 False"""
+    app = await _setup_overrides(db_session, redis_client)
+
+    from models import Floor, Zone, ZoneType, Seat
+
+    floor = Floor(name="1楼", sort_order=1)
+    zone = Zone(name="A区", zone_type=ZoneType.open, sort_order=1, floor=floor)
+    seat = Seat(seat_number="001", zone=zone)
+    db_session.add_all([floor, zone, seat])
+    await db_session.commit()
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/v1/seats?date=2026-07-10&slot=morning")
+        assert resp.status_code == 200
+        seats = resp.json()["seats"]
+        assert len(seats) == 1
+        assert seats[0]["status"] == "available"
+        assert seats[0]["booked_by_me"] is False
+
+    app.dependency_overrides.clear()

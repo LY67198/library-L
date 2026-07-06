@@ -20,7 +20,7 @@ from backend.schemas.seat import (
 )
 from backend.service.seat_service import SeatService
 from core.database import get_db
-from core.deps import get_required_user
+from core.deps import get_current_user, get_required_user
 from core.lock import SeatLock
 from models import User
 
@@ -54,7 +54,7 @@ async def list_seats(
     slot: str | None = Query(None, pattern="^(morning|afternoon|evening)$"),
     db: AsyncSession = Depends(get_db),
     lock: SeatLock = Depends(get_seat_lock),
-    user: User | None = Depends(get_required_user),
+    user: User | None = Depends(get_current_user),
 ):
     date_value = Date.fromisoformat(date) if date else None
     service = SeatService(db, lock)
