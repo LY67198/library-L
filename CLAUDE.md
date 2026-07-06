@@ -50,6 +50,17 @@
 - [x] 前端：`npm run build` 构建成功
 - [x] 后端：57 tests passed（含新增匿名访问测试）
 
+**Phase 2c — Celery 超时释放 — 已完成:**
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-06-library-phase2c-design.md`
+- [x] 实现计划 → `docs/superpowers/plans/2026-07-06-library-phase2c.md`
+- [x] 新建 `app/core/cleanup.py` — 释放逾期座位逻辑，Celery Beat 和懒清理共用
+- [x] 新建 `app/tasks/` — Celery 任务定义（`celery_app.py`、`worker.py`、`beat_schedule.py`），Celery Beat 每 5 分钟轮询释放
+- [x] `pyproject.toml` 新增 `celery` 依赖
+- [x] Docker Compose 新增 `celery_worker` + `celery_beat` 服务
+- [x] 10 个单元测试（`tests/test_cleanup.py`），mock 检测阈值
+- [x] 67 tests passed（新增 10 test_cleanup.py）
+
 ## LLM / 模型配置
 
 | 厂商 | 用途 | 模型 |
@@ -90,7 +101,8 @@ app/
 │   ├── database.py          ← async SQLAlchemy engine + session
 │   ├── security.py          ← JWT 签发/验证 + bcrypt
 │   ├── deps.py              ← FastAPI Depends: get_db, get_current_user
-│   └── lock.py              ← Redis 分布式锁 (SeatLock)
+│   ├── lock.py              ← Redis 分布式锁 (SeatLock)
+│   └── cleanup.py           ← Phase 2c: 释放逾期座位（Celery + 懒清理共用）
 ├── models/                  ← Phase 2a 新建
 │   ├── base.py              ← SQLAlchemy DeclarativeBase
 │   ├── user.py              ← User
@@ -99,6 +111,10 @@ app/
 │   ├── seat.py              ← Seat
 │   ├── seat_time_slot.py    ← SeatTimeSlot (核心并发表)
 │   └── appointment.py       ← Appointment (操作流水)
+├── tasks/                   ← Phase 2c 新建
+│   ├── celery_app.py        ← Celery 应用实例 + Broker/Backend 配置
+│   ├── worker.py            ← Celery 任务（release_overdue_seats）
+│   └── beat_schedule.py     ← Celery Beat 调度配置（每 5 分钟）
 ├── agents/                  ← Phase 1 新建
 │   ├── state.py             ← LibraryState
 │   ├── graph.py             ← 主图 + retrieval 子图
@@ -131,7 +147,8 @@ tests/
 ├── test_security.py               ← 5 tests (Phase 2a)
 ├── test_lock.py                   ← 5 tests (Phase 2a)
 ├── test_auth_api.py               ← Phase 2a ✅
-└── test_seat_api.py               ← Phase 2a + Phase 2b（匿名访问测试）
+├── test_seat_api.py               ← Phase 2a + Phase 2b（匿名访问测试）
+└── test_cleanup.py                ← 10 tests (Phase 2c)
 ```
 
 **前端结构（Phase 2b 新增）:**
@@ -164,14 +181,13 @@ front/src/
 ## 下一步
 
 **后续 Phase:**
-1. Phase 2c：Celery 超时释放（座位预约超时自动取消）
-2. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
-3. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
-4. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
+1. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
+2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
+3. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
 
-## 断点续接 — 2026-07-06（Phase 2b 完成 + 环境修复）
+## 断点续接 — 2026-07-06（Phase 2c 完成）
 
-**当前状态:** Phase 2b 座位可视化前端已完成，11 commits，57 tests passed，前端 build 成功。本地运行环境已修复，全链路（注册/登录/座位列表/预约/取消）可通。
+**当前状态:** Phase 2c Celery 超时释放已完成，67 tests passed。Celery Beat 每 5 分钟轮询释放逾期座位，清理逻辑抽离到 `app/core/cleanup.py`，Celery 和懒清理共用。Docker Compose 新增 celery_worker + celery_beat 服务。
 
 **已实现（全部）:**
 - Auth: POST /api/v1/auth/register, login, refresh, GET /me
@@ -179,14 +195,19 @@ front/src/
 - Agent: reservation_subgraph（5 节点）替换 reservation_stub，返回引导性回复
 - LLM: extract_booking_params, extract_cancel_params, format_reservation_response
 - 前端: Vue 3 + Element Plus 座位可视化（网格浏览 → 时段筛选 → 一键预约）
+- Phase 2c: `app/core/cleanup.py` — `release_overdue_seats()` 清理逻辑
+- Phase 2c: `app/tasks/` — Celery 应用 + 任务 + Beat 调度（每 5 分钟轮询）
+- Phase 2c: Docker Compose 新增 `celery_worker` + `celery_beat` 服务
+- Phase 2c: 10 个单元测试（`tests/test_cleanup.py`），mock 检测阈值
 
-**本次环境修复（2026-07-06）:**
-- LangGraph 版本: `>=0.2.0` → `>=1.2.0`（最新稳定版）
-- `.env` / `.env.example` DATABASE_URL: `postgresql://` → `postgresql+asyncpg://`（必须带异步驱动前缀）
-- schema: `username` min_length: 4 → 2（兼容中文名）
-- Redis: `from_url` 加 `protocol=2`（兼容 Redis 5.x，不支持 RESP3 的 HELLO 命令）
-- 数据库迁移: 旧迁移 `upgrade()` 为空，重建为 `5f8884470c81_initial_all_tables.py`
-- 种子数据: 新建 `scripts/seed.py`（ORM 方式插入 2 层楼 + 3 区域 + 26 座位）
+**本次 Phase 2c 实现（2026-07-06）:**
+- 新建 `app/core/cleanup.py` — `release_overdue_seats()` 释放逾期座位（超过预约时段结束时间仍未签到），Celery Beat 和懒清理共用
+- 新建 `app/tasks/celery_app.py` — Celery 应用实例，broker=Redis，backend=Redis
+- 新建 `app/tasks/worker.py` — 定义 `release_overdue_seats` Celery 共享任务
+- 新建 `app/tasks/beat_schedule.py` — Celery Beat 每 5 分钟调度配置
+- `pyproject.toml` 新增 `celery` 依赖（含 timezone 等配置）
+- Docker Compose: `celery_worker`（启动 worker）+ `celery_beat`（启动 Beat 调度器）
+- `tests/test_cleanup.py` — 10 个测试（正常释放、无逾期、异常回滚、并发安全等），mock 当前时间检测 30 分钟阈值
 
 **已知注意事项:**
 - bcrypt 直接使用（passlib 5.x 不兼容）
@@ -196,6 +217,8 @@ front/src/
 - 前端: Element Plus chunk 较大（~1MB），后续可配置 manualChunks 优化
 - Redis 本地为 5.0.14，生产部署建议 ≥6.0
 - PostgreSQL 本地为 zip 包安装（`D:\P_SQL\...`），非服务模式，需手动 `pg_ctl start`
+- Celery worker 依赖 Redis 作为 broker，本地开发需先启动 Redis
+- Celery Beat 调度在 Docker Compose 中自动启动，本地开发可手动 `celery -A app.tasks.worker beat` 测试
 
 ## 数据库初始化
 
