@@ -130,9 +130,9 @@ uv run pytest tests/ -v
 | POST | `/api/v1/auth/refresh` | 刷新 Token | ✅ Phase 2a |
 | GET | `/api/v1/auth/me` | 当前用户信息 | ✅ Phase 2a |
 | GET | `/api/v1/seats` | 座位列表 | ✅ Phase 2a |
-| POST | `/api/v1/seats/{id}/book` | 预约座位 | ✅ Phase 2a |
+| POST | `/api/v1/seats/{id}/bookings` | 预约座位 | ✅ Phase 2a |
 | GET | `/api/v1/appointments` | 我的预约 | ✅ Phase 2a |
-| POST | `/api/v1/appointments/{id}/cancel` | 取消预约 | ✅ Phase 2a |
+| DELETE | `/api/v1/appointments/{id}` | 取消预约 | ✅ Phase 2a |
 | GET | `/api/v1/profile` | 读者画像 | 🔜 Phase 3 |
 
 ## AI 智能问答

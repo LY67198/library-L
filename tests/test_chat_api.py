@@ -50,7 +50,7 @@ def test_books_endpoint():
     resp = client.get("/api/v1/books?q=Python")
     assert resp.status_code == 200
     data = resp.json()
-    assert isinstance(data, list)
+    assert "items" in data
 
 
 def test_chat_booking_intent_no_longer_stub():

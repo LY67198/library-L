@@ -37,3 +37,15 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   }
   return resp.json()
 }
+
+export async function apiDelete(path: string): Promise<void> {
+  const headers: Record<string, string> = {}
+  const token = getToken()
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const resp = await fetch(`/api/v1${path}`, { method: 'DELETE', headers })
+  if (!resp.ok) {
+    const errBody = await resp.json().catch(() => ({}))
+    throw new Error(errBody.detail?.message || errBody.detail || `HTTP ${resp.status}`)
+  }
+}

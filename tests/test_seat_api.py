@@ -63,7 +63,7 @@ async def test_book_seat_not_found(db_session, redis_client):
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         token = await _create_user_and_login(client)
         resp = await client.post(
-            "/api/v1/seats/nonexistent-id/book",
+            "/api/v1/seats/nonexistent-id/bookings",
             json={"date": "2026-07-10", "slot": "morning"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -102,7 +102,7 @@ async def test_seat_list_and_book_flow(db_session, redis_client):
 
         # Book seat 1
         resp = await client.post(
-            f"/api/v1/seats/{seat1.id}/book",
+            f"/api/v1/seats/{seat1.id}/bookings",
             json={"date": "2026-07-10", "slot": "morning"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -124,7 +124,7 @@ async def test_seat_list_and_book_flow(db_session, redis_client):
 
         # Book same seat again — should get 409
         resp = await client.post(
-            f"/api/v1/seats/{seat1.id}/book",
+            f"/api/v1/seats/{seat1.id}/bookings",
             json={"date": "2026-07-10", "slot": "morning"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -140,14 +140,13 @@ async def test_seat_list_and_book_flow(db_session, redis_client):
         assert len(appts) == 1
         assert appts[0]["seat_id"] == seat1.id
 
-        # Cancel appointment
+        # Cancel appointment (DELETE)
         appt_id = appts[0]["appointment_id"]
-        resp = await client.post(
-            f"/api/v1/appointments/{appt_id}/cancel",
+        resp = await client.delete(
+            f"/api/v1/appointments/{appt_id}",
             headers={"Authorization": f"Bearer {token}"},
         )
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "cancelled"
+        assert resp.status_code == 204
 
         # Seat should be available again
         resp = await client.get(
@@ -173,7 +172,7 @@ async def test_unauthorized_access(db_session):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/v1/seats/any-id/book", json={
+        resp = await client.post("/api/v1/seats/any-id/bookings", json={
             "date": "2026-07-10", "slot": "morning",
         })
         assert resp.status_code == 401

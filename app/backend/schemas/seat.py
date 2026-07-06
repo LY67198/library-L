@@ -10,7 +10,7 @@ class BookRequest(BaseModel):
     slot: str = Field(pattern="^(morning|afternoon|evening)$")
 
 
-class BookResponse(BaseModel):
+class BookingResponse(BaseModel):
     appointment_id: str
     seat_id: str
     floor_name: str
@@ -33,6 +33,9 @@ class SeatItem(BaseModel):
 
 class SeatListResponse(BaseModel):
     seats: list[SeatItem]
+    total: int = 0
+    offset: int = 0
+    limit: int = 100
 
 
 class AppointmentItem(BaseModel):
@@ -48,6 +51,9 @@ class AppointmentItem(BaseModel):
 
 class AppointmentListResponse(BaseModel):
     appointments: list[AppointmentItem]
+    total: int = 0
+    offset: int = 0
+    limit: int = 100
 
 
 class CancelResponse(BaseModel):

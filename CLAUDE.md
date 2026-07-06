@@ -184,13 +184,38 @@ front/src/
 2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 3. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
 
-## 断点续接 — 2026-07-06（Phase 2c 完成）
+## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 
-**当前状态:** Phase 2c Celery 超时释放已完成，67 tests passed。Celery Beat 每 5 分钟轮询释放逾期座位，清理逻辑抽离到 `app/core/cleanup.py`，Celery 和懒清理共用。Docker Compose 新增 celery_worker + celery_beat 服务。
+**当前状态:** Phase 2c Celery 超时释放已完成。RESTful 规范化重构已完成，67 tests passed + 前端构建通过。
+
+### RESTful 重构 — 已全部完成
+
+- [x] **Seat schemas**: `BookResponse`→`BookingResponse`，`SeatListResponse`/`AppointmentListResponse` 新增 `total`/`offset`/`limit` 分页字段
+- [x] **seat_router**:
+  - `POST /seats/{id}/book` → `POST /seats/{id}/bookings`（动词→名词）
+  - `POST /appointments/{id}/cancel` → `DELETE /appointments/{id}`（204 No Content）
+  - `GET /seats` 和 `GET /appointments` 新增 `offset`/`limit` 查询参数
+  - router 去掉硬编码 prefix，每个 route 自带完整路径
+- [x] **book_router**: `GET /books` 返回格式从 `list` 改为 `{"items": [...], "total", "offset", "limit"}`
+- [x] **测试更新**: `test_seat_api.py` URL 同步更新（`/book`→`/bookings`，cancel 改用 `.delete()`，断言 204）
+- [x] **test_chat_api.py**: book 响应断言改为 `"items" in data`
+- [x] **前端 `api/client.ts`**: 新增 `apiDelete()` 函数
+- [x] **前端 `api/seats.ts`**: `bookSeat` URL→`/bookings`，新增 `cancelAppointment()`，fetchSeats 支持 `offset`/`limit`
+- [x] **全量测试**: 67 tests passed
+- [x] **前端构建**: `npm run build` 通过
+
+### 新的 API 一览
+
+| 方法 | URL | 说明 |
+|------|-----|------|
+| GET | `/api/v1/seats` | 座位列表（+offset/limit 分页） |
+| POST | `/api/v1/seats/{id}/bookings` | 预约座位 |
+| GET | `/api/v1/appointments` | 我的预约（+offset/limit 分页） |
+| DELETE | `/api/v1/appointments/{id}` | 取消预约 |
 
 **已实现（全部）:**
 - Auth: POST /api/v1/auth/register, login, refresh, GET /me
-- Seats: GET /api/v1/seats（可选认证）, POST /seats/{id}/book, GET /appointments, POST /appointments/{id}/cancel
+- Seats: GET /api/v1/seats（可选认证）, POST /seats/{id}/bookings, GET /appointments, DELETE /appointments/{id}
 - Agent: reservation_subgraph（5 节点）替换 reservation_stub，返回引导性回复
 - LLM: extract_booking_params, extract_cancel_params, format_reservation_response
 - 前端: Vue 3 + Element Plus 座位可视化（网格浏览 → 时段筛选 → 一键预约）

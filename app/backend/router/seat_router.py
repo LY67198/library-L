@@ -13,8 +13,7 @@ from backend.schemas.seat import (
     AppointmentItem,
     AppointmentListResponse,
     BookRequest,
-    BookResponse,
-    CancelResponse,
+    BookingResponse,
     SeatItem,
     SeatListResponse,
 )
@@ -24,7 +23,7 @@ from core.deps import get_current_user, get_required_user
 from core.lock import SeatLock
 from models import User
 
-router = APIRouter(prefix="/api/v1", tags=["seats"])
+router = APIRouter(tags=["seats"])
 
 _REDIS_CLIENT: aioredis.Redis | None = None
 _SEAT_LOCK: SeatLock | None = None
@@ -46,12 +45,14 @@ async def get_seat_lock() -> SeatLock:
     return _SEAT_LOCK
 
 
-@router.get("/seats", response_model=SeatListResponse)
+@router.get("/api/v1/seats", response_model=SeatListResponse)
 async def list_seats(
     floor_id: int | None = Query(None),
     zone_id: int | None = Query(None),
     date: str | None = Query(None, description="YYYY-MM-DD"),
     slot: str | None = Query(None, pattern="^(morning|afternoon|evening)$"),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     lock: SeatLock = Depends(get_seat_lock),
     user: User | None = Depends(get_current_user),
@@ -65,10 +66,17 @@ async def list_seats(
         slot=slot,
         user_id=user.id if user else None,
     )
-    return SeatListResponse(seats=[SeatItem(**s) for s in seats])
+    total = len(seats)
+    paginated = seats[offset:offset + limit]
+    return SeatListResponse(
+        seats=[SeatItem(**s) for s in paginated],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
-@router.post("/seats/{seat_id}/book", response_model=BookResponse)
+@router.post("/api/v1/seats/{seat_id}/bookings", response_model=BookingResponse)
 async def book_seat(
     seat_id: str,
     payload: BookRequest,
@@ -80,7 +88,7 @@ async def book_seat(
     service = SeatService(db, lock)
     try:
         result = await service.book_seat(seat_id, user.id, date_value, payload.slot)
-        return BookResponse(**result)
+        return BookingResponse(**result)
     except ValueError as e:
         msg = str(e)
         if "已被预约" in msg:
@@ -106,20 +114,27 @@ async def book_seat(
         raise HTTPException(status_code=422, detail=msg)
 
 
-@router.get("/appointments", response_model=AppointmentListResponse)
+@router.get("/api/v1/appointments", response_model=AppointmentListResponse)
 async def list_appointments(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     lock: SeatLock = Depends(get_seat_lock),
     user: User = Depends(get_required_user),
 ):
     service = SeatService(db, lock)
     appointments = await service.list_appointments(user.id)
+    total = len(appointments)
+    paginated = appointments[offset:offset + limit]
     return AppointmentListResponse(
-        appointments=[AppointmentItem(**a) for a in appointments]
+        appointments=[AppointmentItem(**a) for a in paginated],
+        total=total,
+        offset=offset,
+        limit=limit,
     )
 
 
-@router.post("/appointments/{appointment_id}/cancel", response_model=CancelResponse)
+@router.delete("/api/v1/appointments/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_appointment(
     appointment_id: str,
     db: AsyncSession = Depends(get_db),
@@ -128,7 +143,6 @@ async def cancel_appointment(
 ):
     service = SeatService(db, lock)
     try:
-        result = await service.cancel_appointment(appointment_id, user.id)
-        return CancelResponse(**result)
+        await service.cancel_appointment(appointment_id, user.id)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
