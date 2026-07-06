@@ -72,7 +72,7 @@ class SeatService:
             await self._cleanup_expired_slots(date_value, slot)
 
         query = (
-            select(Seat, Zone.name, Floor.name)
+            select(Seat, Zone.id, Zone.name, Floor.id, Floor.name)
             .join(Zone, Seat.zone_id == Zone.id)
             .join(Floor, Zone.floor_id == Floor.id)
         )
@@ -86,7 +86,7 @@ class SeatService:
         rows = result.all()
 
         seats = []
-        for seat, zone_name, floor_name in rows:
+        for seat, zone_id, zone_name, floor_id, floor_name in rows:
             status = "available"
             booked_by_me = False
 
@@ -112,7 +112,9 @@ class SeatService:
 
             seats.append({
                 "seat_id": seat.id,
+                "floor_id": floor_id,
                 "floor_name": floor_name,
+                "zone_id": zone_id,
                 "zone_name": zone_name,
                 "seat_number": seat.seat_number,
                 "status": status,

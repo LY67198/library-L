@@ -22,7 +22,9 @@ class BookResponse(BaseModel):
 
 class SeatItem(BaseModel):
     seat_id: str
+    floor_id: int  # 用于前端筛选
     floor_name: str
+    zone_id: int  # 用于前端筛选
     zone_name: str
     seat_number: str
     status: str  # available / booked / disabled
