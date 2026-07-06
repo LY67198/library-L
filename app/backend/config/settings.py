@@ -16,6 +16,14 @@ class AppSettings(BaseSettings):
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     config_path: str = str(ROOT_DIR / "config.example.json")
 
+    # Phase 2a 新增
+    database_url: str = "postgresql+asyncpg://library:library123@localhost:5432/library"
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    redis_url: str = "redis://localhost:6379/0"
+
     model_config = SettingsConfigDict(
         env_file=str(ROOT_DIR / ".env"),
         env_file_encoding="utf-8",
@@ -24,4 +32,14 @@ class AppSettings(BaseSettings):
 
     def cors_origins(self) -> list[str]:
         return [item.strip() for item in self.cors_allow_origins.split(",") if item.strip()]
+
+
+_SETTINGS: AppSettings | None = None
+
+
+def get_settings() -> AppSettings:
+    global _SETTINGS
+    if _SETTINGS is None:
+        _SETTINGS = AppSettings()
+    return _SETTINGS
 
