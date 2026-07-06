@@ -3,14 +3,14 @@
 基于 FastAPI + LangGraph + Vue 3 的高校图书馆智能服务系统，集成 AI 智能问答、座位预约、馆藏检索、读者画像等功能。
 
 > **Phase 1 已完成** — AI 智能问答 + 馆藏检索，32 tests passed。
-> **Phase 2a 进行中** — 用户认证 + 座位预约闭环，42 tests passed。
+> **Phase 2a 已完成** — 用户认证 + 座位预约闭环，56 tests passed。
 
 ## 功能特性
 
 - **AI 智能问答** — 多 Agent 协作，意图识别 + RAG 检索 + 自动化操作 ✅ Phase 1
 - **馆藏检索** — BM25 + ChromaDB Dense + RRF 融合 + Cross-Encoder 重排 ✅ Phase 1（检索框架就绪）
-- **座位可视化** — 楼层可视化座位网格，Redis 分布式锁防并发 🔜 Phase 2
-- **预约管理** — 预约/取消/历史查询，Celery 超时自动释放 🔜 Phase 2
+- **座位可视化** — 楼层可视化座位网格，Redis 分布式锁防并发 🔜 Phase 2b
+- **预约管理** — 预约/取消/历史查询 ✅ Phase 2a（REST API），Celery 超时自动释放 🔜 Phase 2b
 - **读者画像** — 预约统计、行为标签、个性化推荐 🔜 Phase 3
 - **知识库管理** — 图书/政策文档的增删改查（管理员） 🔜 Phase 3
 - **MCP Server** — 开放 5 个 Tool，支持外部 AI 客户端接入 🔜 Phase 3
@@ -123,13 +123,14 @@ uv run pytest tests/ -v
 | POST | `/api/v1/chat` | AI 问答 | ✅ Phase 1 |
 | POST | `/api/v1/chat/stream` | SSE 流式问答 | ✅ Phase 1 |
 | GET | `/api/v1/books` | 馆藏检索 | ✅ Phase 1 |
-| POST | `/api/v1/auth/register` | 用户注册 | 🔧 Phase 2a |
-| POST | `/api/v1/auth/login` | 用户登录 | 🔧 Phase 2a |
-| GET | `/api/v1/auth/me` | 当前用户信息 | 🔧 Phase 2a |
-| GET | `/api/v1/seats/` | 座位列表 | 🔧 Phase 2a |
-| POST | `/api/v1/seats/{id}/book` | 预约座位 | 🔧 Phase 2a |
-| GET | `/api/v1/appointments/` | 我的预约 | 🔧 Phase 2a |
-| POST | `/api/v1/appointments/{id}/cancel` | 取消预约 | 🔧 Phase 2a |
+| POST | `/api/v1/auth/register` | 用户注册 | ✅ Phase 2a |
+| POST | `/api/v1/auth/login` | 用户登录 | ✅ Phase 2a |
+| POST | `/api/v1/auth/refresh` | 刷新 Token | ✅ Phase 2a |
+| GET | `/api/v1/auth/me` | 当前用户信息 | ✅ Phase 2a |
+| GET | `/api/v1/seats` | 座位列表 | ✅ Phase 2a |
+| POST | `/api/v1/seats/{id}/book` | 预约座位 | ✅ Phase 2a |
+| GET | `/api/v1/appointments` | 我的预约 | ✅ Phase 2a |
+| POST | `/api/v1/appointments/{id}/cancel` | 取消预约 | ✅ Phase 2a |
 | GET | `/api/v1/profile` | 读者画像 | 🔜 Phase 3 |
 
 ## AI 智能问答
@@ -141,9 +142,9 @@ uv run pytest tests/ -v
 | `search_book` | 检索图书 | 完整实现 |
 | `recommend_book` | 推荐图书 | 完整实现 |
 | `policy_query` | 政策咨询（开馆时间/借阅规则等） | 完整实现 |
-| `book_seat` | 预约座位 | 🔧 Phase 2a |
-| `query_appointment` | 查询预约记录 | 🔧 Phase 2a |
-| `cancel_appointment` | 取消预约 | 🔧 Phase 2a |
+| `book_seat` | 预约座位 | 完整实现 |
+| `query_appointment` | 查询预约记录 | 完整实现 |
+| `cancel_appointment` | 取消预约 | 完整实现 |
 | `profile_query` | 读者画像/借阅记录 | stub |
 | `greeting` | 问候闲聊 | 简单回复 |
 | `other` | 未分类兜底 | 简单回复 |
