@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date as Date, datetime, time, timezone
+from datetime import date as Date, datetime, timezone
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.cleanup import cleanup_expired_slots as _do_cleanup
 from core.lock import SeatLock
 from models import (
     Appointment,
@@ -19,12 +20,6 @@ from models import (
     Zone,
 )
 
-SLOT_TIMES = {
-    "morning": (time(8, 0), time(12, 0)),
-    "afternoon": (time(13, 0), time(17, 0)),
-    "evening": (time(18, 0), time(22, 0)),
-}
-
 
 class SeatService:
 
@@ -33,31 +28,8 @@ class SeatService:
         self._lock = lock
 
     async def _cleanup_expired_slots(self, date_value: Date, slot: str) -> None:
-        """懒清理：释放过期未签到的预约"""
-        now = datetime.now(timezone.utc)
-        slot_start, slot_end_t = SLOT_TIMES[slot]
-        slot_start_dt = datetime.combine(date_value, slot_start, tzinfo=timezone.utc)
-        cutoff = slot_start_dt.replace(minute=slot_start_dt.minute + 30)
-
-        if now < cutoff:
-            return
-
-        result = await self._db.execute(
-            select(SeatTimeSlot).join(Appointment).where(
-                and_(
-                    SeatTimeSlot.date == date_value,
-                    SeatTimeSlot.slot == slot,
-                    Appointment.status == AppointmentStatus.booked,
-                    SeatTimeSlot.booked_at < cutoff,
-                )
-            )
-        )
-        expired = result.scalars().all()
-        for sts in expired:
-            await self._lock.release(sts.seat_id, str(date_value), slot)
-            await self._db.delete(sts)
-        if expired:
-            await self._db.commit()
+        """懒清理：释放过期未签到的预约。委托 core.cleanup。"""
+        await _do_cleanup(self._db, self._lock, date_value, slot)
 
     async def list_seats(
         self,
@@ -129,7 +101,9 @@ class SeatService:
         """预约座位 — Redis 抢锁 + PG 写入 + 双重保障"""
         date_str = str(date_value)
 
-        if slot not in SLOT_TIMES:
+        try:
+            TimeSlot(slot)
+        except ValueError:
             raise ValueError("无效的时段")
 
         today = datetime.now(timezone.utc).date()
