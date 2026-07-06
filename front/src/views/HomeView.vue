@@ -140,6 +140,9 @@ const intentLabel = (intent: string) => {
       <div class="features">
         <span>检索</span><span>推荐</span><span>政策咨询</span><span>座位预约</span>
       </div>
+      <div class="nav-links">
+        <router-link to="/seats" class="nav-link">座位预约</router-link>
+      </div>
     </aside>
 
     <section class="workspace">
