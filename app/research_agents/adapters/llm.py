@@ -4,6 +4,7 @@ from typing import Protocol
 
 
 class LLMClient(Protocol):
+    # --- 深度调研方法（原有） ---
     def classify_intent(self, query: str) -> str: ...
 
     def answer_direct(self, query: str, memory_context: str = "") -> str: ...
@@ -17,6 +18,13 @@ class LLMClient(Protocol):
     def reflect(self, query: str, missing_gaps: list[str]) -> list[dict]: ...
 
     def write_report(self, query: str, findings: list[dict], sources: list[dict]) -> str: ...
+
+    # --- 图书馆问答方法（Phase 1 新增） ---
+    def classify_library_intent(self, query: str) -> str: ...
+
+    def format_library_response(self, intent: str, query: str, docs: list[dict]) -> str: ...
+
+    def stub_message(self, intent: str) -> str: ...
 
 
 class RuleBasedLLMClient:
@@ -105,4 +113,54 @@ class RuleBasedLLMClient:
         else:
             lines.append("- No sources.")
         return "\n".join(lines)
+
+    # --- 图书馆问答方法（Phase 1 新增） ---
+
+    def classify_library_intent(self, query: str) -> str:
+        """9 分类关键词规则引擎"""
+        lowered = query.lower()
+        # 注意：顺序很重要——更具体的关键词必须排在前面，
+        # 避免被较宽泛的关键词（如 search_book 的 "查一下"）先匹配到。
+        intent_rules = [
+            ("cancel_appointment", ["取消预约", "删除预约", "取消"]),
+            ("query_appointment", ["我的预约", "预约记录", "预约查询", "查一下我的预约"]),
+            ("profile_query", ["借阅记录", "我的记录", "借了哪些", "借过什么", "读者画像"]),
+            ("book_seat", ["预约座位", "占座", "订座", "选座", "座位预约"]),
+            ("recommend_book", ["推荐几本", "不知道看什么", "有什么好书", "推荐一下", "推荐"]),
+            ("search_book", ["有没有", "找一下", "找一本", "查一下", "检索", "搜索", "在哪"]),
+            ("policy_query", ["几点", "开门", "关门", "借书", "借多久", "罚款", "规则", "规定", "怎么借"]),
+            ("greeting", ["你好", "hi", "hello", "嗨", "早上好", "下午好", "晚上好"]),
+        ]
+        for intent, markers in intent_rules:
+            if any(marker in lowered for marker in markers):
+                return intent
+        return "other"
+
+    def format_library_response(self, intent: str, query: str, docs: list[dict]) -> str:
+        """将检索结果格式化为用户可读的回复"""
+        if not docs:
+            return f"未找到与「{query}」相关的结果，请尝试其他关键词。"
+        lines = ["为您找到以下结果：", ""]
+        for idx, doc in enumerate(docs, 1):
+            content = doc.get("content", "")
+            meta = doc.get("metadata", {})
+            source = meta.get("source", meta.get("title", ""))
+            loc = meta.get("location", meta.get("locator", ""))
+            line = f"{idx}. {content}"
+            if source:
+                line += f"  [{source}]"
+            if loc:
+                line += f" — {loc}"
+            lines.append(line)
+        return "\n".join(lines)
+
+    def stub_message(self, intent: str) -> str:
+        """占位消息 — 未实现功能的友好提示"""
+        messages = {
+            "book_seat": "座位预约功能正在开发中，敬请期待。",
+            "query_appointment": "预约查询功能正在开发中，敬请期待。",
+            "cancel_appointment": "取消预约功能正在开发中，敬请期待。",
+            "profile_query": "读者画像功能正在开发中，敬请期待。",
+        }
+        return messages.get(intent, "该功能正在开发中，敬请期待。")
 

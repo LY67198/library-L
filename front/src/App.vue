@@ -1,58 +1,55 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
 
-type StreamEvent = {
-  type: 'status' | 'phase' | 'route' | 'final' | 'error'
-  node?: string
-  message?: string
-  final?: string
+type SSEEvent = {
+  type: 'intent' | 'token' | 'done' | 'error'
+  intent?: string
+  content?: string
+  data?: string
+  response?: string
+  sources?: Array<Record<string, unknown>>
 }
 
-type ChatMessage = {
+type Message = {
   id: string
-  role: 'user' | 'assistant' | 'status'
+  role: 'user' | 'assistant'
   content: string
+  intent?: string
+  sources?: Array<Record<string, unknown>>
 }
 
-const query = ref('Compare RAG and multi-agent research workflows')
-const userId = ref('default_user')
-const threadId = ref('default_thread')
-const tenantId = ref('default_tenant')
+const query = ref('')
 const loading = ref(false)
 const error = ref('')
-const messages = ref<ChatMessage[]>([
+const messages = ref<Message[]>([
   {
     id: 'welcome',
     role: 'assistant',
-    content: 'Send a research request to exercise the scaffold workflow.',
+    content:
+      '您好！我是图书馆智能助手。\n\n可以帮您：\n- 检索图书（"有没有《三体》"）\n- 推荐书籍（"推荐几本小说"）\n- 政策咨询（"图书馆几点关门"）\n- 座位预约（"我要预约座位"）',
   },
 ])
-const logs = ref<string[]>([])
 const messageListRef = ref<HTMLElement | null>(null)
 
-const runResearch = async () => {
+const sendMessage = async () => {
   const text = query.value.trim()
   if (!text || loading.value) return
 
   loading.value = true
   error.value = ''
-  logs.value = []
   messages.value.push({ id: crypto.randomUUID(), role: 'user', content: text })
-  const statusId = crypto.randomUUID()
-  messages.value.push({ id: statusId, role: 'status', content: 'Starting workflow...' })
   query.value = ''
   await scrollToBottom()
 
+  const assistantId = crypto.randomUUID()
+  messages.value.push({ id: assistantId, role: 'assistant', content: '', intent: '', sources: [] })
+  await scrollToBottom()
+
   try {
-    const response = await fetch('/api/v1/research/stream', {
+    const response = await fetch('/api/v1/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: text,
-        user_id: userId.value || 'default_user',
-        thread_id: threadId.value || 'default_thread',
-        tenant_id: tenantId.value || 'default_tenant',
-      }),
+      body: JSON.stringify({ query: text }),
     })
     if (!response.ok || !response.body) {
       throw new Error(`Request failed: ${response.status}`)
@@ -69,41 +66,46 @@ const runResearch = async () => {
       const frames = buffer.split('\n\n')
       buffer = frames.pop() || ''
       for (const frame of frames) {
-        const line = frame.split('\n').find((item) => item.startsWith('data: '))
-        if (!line) continue
-        const event = JSON.parse(line.slice(6)) as StreamEvent
-        handleEvent(event, statusId)
+        const lines = frame.split('\n')
+        let eventType = ''
+        let data = ''
+        for (const line of lines) {
+          if (line.startsWith('event: ')) eventType = line.slice(7)
+          if (line.startsWith('data: ')) data = line.slice(6)
+        }
+        if (!data) continue
+        try {
+          const event = JSON.parse(data) as SSEEvent
+          const msg = messages.value.find((m) => m.id === assistantId)
+          if (!msg) continue
+          if (eventType === 'intent') {
+            msg.intent = event.data || event.intent
+          }
+          if (eventType === 'token') {
+            msg.content += event.content || ''
+          }
+          if (eventType === 'done') {
+            msg.intent = event.intent || msg.intent
+            msg.content = event.response || msg.content
+            msg.sources = event.sources || []
+          }
+          if (eventType === 'error') {
+            msg.content += `\n[错误: ${event.content || '服务异常'}]`
+          }
+        } catch {
+          // 跳过无法解析的帧
+        }
       }
       await scrollToBottom()
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown request error'
+    const message = err instanceof Error ? err.message : 'Request failed'
     error.value = message
-    messages.value = messages.value.filter((item) => item.id !== statusId)
-    messages.value.push({ id: crypto.randomUUID(), role: 'assistant', content: message })
+    const msg = messages.value.find((m) => m.id === assistantId)
+    if (msg) msg.content = `请求失败: ${message}`
   } finally {
     loading.value = false
     await scrollToBottom()
-  }
-}
-
-const handleEvent = (event: StreamEvent, statusId: string) => {
-  if (event.type === 'phase' || event.type === 'status' || event.type === 'route') {
-    const line = event.node ? `${event.node}: ${event.message}` : event.message || event.type
-    logs.value.push(line)
-    const status = messages.value.find((item) => item.id === statusId)
-    if (status) status.content = logs.value.map((item) => `- ${item}`).join('\n')
-  }
-  if (event.type === 'final') {
-    messages.value = messages.value.filter((item) => item.id !== statusId)
-    messages.value.push({
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: event.final || 'No final answer returned.',
-    })
-  }
-  if (event.type === 'error') {
-    throw new Error(event.message || 'Workflow error')
   }
 }
 
@@ -113,50 +115,60 @@ const scrollToBottom = async () => {
     messageListRef.value.scrollTop = messageListRef.value.scrollHeight
   }
 }
+
+const intentLabel = (intent: string) => {
+  const map: Record<string, string> = {
+    search_book: '图书检索',
+    recommend_book: '推荐',
+    policy_query: '政策咨询',
+    book_seat: '座位预约',
+    query_appointment: '预约查询',
+    cancel_appointment: '取消预约',
+    profile_query: '读者画像',
+    greeting: '问候',
+    other: '其他',
+  }
+  return map[intent] || intent
+}
 </script>
 
 <template>
   <main class="shell">
     <aside class="sidebar">
-      <div>
-        <p class="eyebrow">Scaffold</p>
-        <h1>Deep Research</h1>
-        <p class="description">A reusable LangGraph + FastAPI + SSE starter.</p>
+      <h1>图书馆智能助手</h1>
+      <p class="description">AI 驱动的图书馆服务系统</p>
+      <div class="features">
+        <span>检索</span><span>推荐</span><span>政策咨询</span><span>座位预约</span>
       </div>
-
-      <label>
-        User ID
-        <input v-model="userId" />
-      </label>
-      <label>
-        Thread ID
-        <input v-model="threadId" />
-      </label>
-      <label>
-        Tenant ID
-        <input v-model="tenantId" />
-      </label>
     </aside>
 
     <section class="workspace">
-      <header>
-        <h2>Research Console</h2>
-        <p>Use this page to verify the backend stream and workflow phases.</p>
-      </header>
-
       <div ref="messageListRef" class="messages">
-        <article v-for="message in messages" :key="message.id" :class="['message', message.role]">
-          <div class="avatar">{{ message.role === 'user' ? 'U' : message.role === 'status' ? '...' : 'AI' }}</div>
-          <pre>{{ message.content }}</pre>
+        <article
+          v-for="message in messages"
+          :key="message.id"
+          :class="['message', message.role]"
+        >
+          <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
+          <div class="bubble">
+            <span v-if="message.intent" class="intent-tag">{{ intentLabel(message.intent) }}</span>
+            <pre>{{ message.content }}</pre>
+          </div>
         </article>
       </div>
 
-      <form class="composer" @submit.prevent="runResearch">
-        <textarea v-model="query" :disabled="loading" rows="3" />
-        <button :disabled="loading || !query.trim()">{{ loading ? 'Running...' : 'Run' }}</button>
+      <form class="composer" @submit.prevent="sendMessage">
+        <textarea
+          v-model="query"
+          :disabled="loading"
+          rows="2"
+          placeholder="输入您的问题..."
+        />
+        <button :disabled="loading || !query.trim()">
+          {{ loading ? '...' : '发送' }}
+        </button>
       </form>
       <p v-if="error" class="error">{{ error }}</p>
     </section>
   </main>
 </template>
-
