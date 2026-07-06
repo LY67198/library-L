@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环。
+基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端。
 
 ## 仓库
 
@@ -36,6 +36,19 @@
 - [x] Auth/Seat Service + Router → 注册/登录/refresh/me + 座位列表/预约/取消/查预约
 - [x] Agent 层 reservation_subgraph → 5 节点子图替换 stub
 - [x] 集成测试 + E2E → 56 tests passed
+
+**Phase 2b — 座位可视化前端 — 已完成:**
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-06-library-phase2b-design.md`
+- [x] 实现计划 → `docs/superpowers/plans/2026-07-06-library-phase2b.md`
+- [x] 后端：`SeatItem` 增加 `floor_id`/`zone_id` 字段
+- [x] 后端：`GET /api/v1/seats` 改为可选认证（匿名可浏览）
+- [x] 前端：vue-router + Element Plus 应用壳搭建
+- [x] 前端：API 层（client, seats, auth）+ useAuth 组合式函数
+- [x] 前端：登录页面 + 座位可视化组件（TimeSlotPicker, ZoneChips, SeatCard, SeatGrid, SeatLegend, BookingConfirmDialog）
+- [x] 前端：SeatDashboard 主页面 + HomeView 导航入口
+- [x] 前端：`npm run build` 构建成功
+- [x] 后端：57 tests passed（含新增匿名访问测试）
 
 ## LLM / 模型配置
 
@@ -118,32 +131,61 @@ tests/
 ├── test_security.py               ← 5 tests (Phase 2a)
 ├── test_lock.py                   ← 5 tests (Phase 2a)
 ├── test_auth_api.py               ← Phase 2a ✅
-└── test_seat_api.py               ← Phase 2a ✅
+└── test_seat_api.py               ← Phase 2a + Phase 2b（匿名访问测试）
+```
+
+**前端结构（Phase 2b 新增）:**
+
+```
+front/src/
+├── main.ts                          ← ElementPlus + Router 注册
+├── App.vue                          ← <router-view /> 路由壳
+├── api/
+│   ├── client.ts                    ← fetch 封装 + token 注入
+│   ├── seats.ts                     ← 座位 API（fetchSeats, bookSeat）
+│   └── auth.ts                      ← 认证 API（login, fetchMe）
+├── composables/
+│   └── useAuth.ts                   ← 全局认证状态管理
+├── router/
+│   └── index.ts                     ← / → Home, /seats → Dashboard, /login
+├── views/
+│   ├── HomeView.vue                 ← 聊天界面（Phase 1 迁移）
+│   ├── LoginView.vue                ← 登录页面
+│   └── SeatDashboard.vue            ← 座位预约主页面
+└── components/
+    ├── TimeSlotPicker.vue           ← 时段选择（上午/下午/晚上）
+    ├── ZoneChips.vue                ← 区域 Tag 筛选
+    ├── SeatCard.vue                 ← 座位色块（绿/红/蓝/灰）
+    ├── SeatGrid.vue                 ← 8 列座位网格
+    ├── SeatLegend.vue               ← 颜色图例
+    └── BookingConfirmDialog.vue     ← 预约确认弹窗
 ```
 
 ## 下一步
 
 **后续 Phase:**
-1. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
-2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
-3. Phase 2b：Celery 超时释放 + 座位可视化前端
+1. Phase 2c：Celery 超时释放（座位预约超时自动取消）
+2. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
+3. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 4. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
 
-## 断点续接 — 2026-07-06（Phase 2a 完成）
+## 断点续接 — 2026-07-06（Phase 2b 完成）
 
-**当前状态:** Phase 2a 全部 21 个任务完成，56 tests passed。
+**当前状态:** Phase 2b 座位可视化前端已完成，11 commits，57 tests passed，前端 build 成功。
 
-**已实现:**
+**已实现（全部）:**
 - Auth: POST /api/v1/auth/register, login, refresh, GET /me
-- Seats: GET /api/v1/seats, POST /seats/{id}/book, GET /appointments, POST /appointments/{id}/cancel
+- Seats: GET /api/v1/seats（可选认证）, POST /seats/{id}/book, GET /appointments, POST /appointments/{id}/cancel
 - Agent: reservation_subgraph（5 节点）替换 reservation_stub，返回引导性回复
 - LLM: extract_booking_params, extract_cancel_params, format_reservation_response
+- 前端: Vue 3 + Element Plus 座位可视化（网格浏览 → 时段筛选 → 一键预约）
 
-**已知注意事项（不变）:**
+**已知注意事项:**
 - bcrypt 直接使用（passlib 5.x 不兼容）
 - pytest 需要 `pytest-asyncio` + `asyncio_mode = "auto"`（已配置）
 - Redis 锁测试用 fakeredis，`acquire()` 返回 `result is not None`
 - 远程: `gitee` + `github`，推送用 `git push gitee dev && git push github dev`
+- 前端: Element Plus chunk 较大（~1MB），后续可配置 manualChunks 优化
 
 ## 关键文档
 
@@ -151,3 +193,5 @@ tests/
 - Phase 1 计划: `docs/superpowers/plans/2026-07-06-library-qa-phase1.md`
 - Phase 2a 设计: `docs/superpowers/specs/2026-07-06-library-phase2a-design.md`
 - Phase 2a 计划: `docs/superpowers/plans/2026-07-06-library-phase2a.md`
+- Phase 2b 设计: `docs/superpowers/specs/2026-07-06-library-phase2b-design.md`
+- Phase 2b 计划: `docs/superpowers/plans/2026-07-06-library-phase2b.md`
