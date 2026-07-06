@@ -13,7 +13,7 @@ if str(APP_DIR) not in sys.path:
 
 from backend.config.settings import AppSettings
 from backend.router.health_router import router as health_router
-from backend.router.research_router import router as research_router
+
 from backend.router.chat_router import router as chat_router
 from backend.router.book_router import router as book_router
 from backend.router.auth_router import router as auth_router
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health_router)
-    app.include_router(research_router)
+
     app.include_router(chat_router)
     app.include_router(book_router)
     app.include_router(auth_router)

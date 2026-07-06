@@ -14,7 +14,6 @@ class AppSettings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    config_path: str = str(ROOT_DIR / "config.example.json")
 
     # Phase 2a 新增
     database_url: str = "postgresql+asyncpg://library:library123@localhost:5432/library"

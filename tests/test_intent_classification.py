@@ -1,7 +1,7 @@
 """9 分类意图识别测试"""
 
 import pytest
-from research_agents.adapters.llm import RuleBasedLLMClient
+from agents.llm import RuleBasedLLMClient
 
 
 @pytest.fixture

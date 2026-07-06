@@ -6,7 +6,7 @@ import asyncio
 from threading import Lock, Thread
 from typing import AsyncIterator
 
-from research_agents.adapters.llm import RuleBasedLLMClient
+from agents.llm import RuleBasedLLMClient
 from agents.config import ChatConfig
 from agents.graph import build_library_graph
 from agents.nodes import LibraryNodeContext

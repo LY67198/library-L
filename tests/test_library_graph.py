@@ -1,7 +1,7 @@
 """图路由集成测试 — 9 意图路由 + 检索产出 + Stub 兜底"""
 
 import pytest
-from research_agents.adapters.llm import RuleBasedLLMClient
+from agents.llm import RuleBasedLLMClient
 from agents.config import ChatConfig
 from agents.graph import build_library_graph
 from agents.nodes import LibraryNodeContext

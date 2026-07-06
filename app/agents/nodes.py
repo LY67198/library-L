@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from research_agents.adapters.llm import LLMClient
+from agents.llm import LLMClient
 from .config import ChatConfig
 from .retrieval.protocol import Retriever
 from .state import LibraryState
