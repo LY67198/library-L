@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端。
+基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端，Phase 2c 实现 Celery 超时释放。
 
 ## 仓库
 
@@ -55,7 +55,7 @@
 - [x] 设计文档 → `docs/superpowers/specs/2026-07-06-library-phase2c-design.md`
 - [x] 实现计划 → `docs/superpowers/plans/2026-07-06-library-phase2c.md`
 - [x] 新建 `app/core/cleanup.py` — 释放逾期座位逻辑，Celery Beat 和懒清理共用
-- [x] 新建 `app/tasks/` — Celery 任务定义（`celery_app.py`、`worker.py`、`beat_schedule.py`），Celery Beat 每 5 分钟轮询释放
+- [x] 新建 `app/tasks/` — Celery 任务定义（`celery_app.py` + `cleanup.py`），Celery Beat 每 5 分钟轮询释放
 - [x] `pyproject.toml` 新增 `celery` 依赖
 - [x] Docker Compose 新增 `celery_worker` + `celery_beat` 服务
 - [x] 10 个单元测试（`tests/test_cleanup.py`），mock 检测阈值
@@ -112,9 +112,8 @@ app/
 │   ├── seat_time_slot.py    ← SeatTimeSlot (核心并发表)
 │   └── appointment.py       ← Appointment (操作流水)
 ├── tasks/                   ← Phase 2c 新建
-│   ├── celery_app.py        ← Celery 应用实例 + Broker/Backend 配置
-│   ├── worker.py            ← Celery 任务（release_overdue_seats）
-│   └── beat_schedule.py     ← Celery Beat 调度配置（每 5 分钟）
+│   ├── celery_app.py        ← Celery 实例 + Beat 调度配置
+│   └── cleanup.py           ← Celery 任务（release_expired_slots）
 ├── agents/                  ← Phase 1 新建
 │   ├── state.py             ← LibraryState
 │   ├── graph.py             ← 主图 + retrieval 子图
@@ -195,16 +194,16 @@ front/src/
 - Agent: reservation_subgraph（5 节点）替换 reservation_stub，返回引导性回复
 - LLM: extract_booking_params, extract_cancel_params, format_reservation_response
 - 前端: Vue 3 + Element Plus 座位可视化（网格浏览 → 时段筛选 → 一键预约）
-- Phase 2c: `app/core/cleanup.py` — `release_overdue_seats()` 清理逻辑
+- Phase 2c: `app/core/cleanup.py` — `cleanup_expired_slots()` 清理逻辑
 - Phase 2c: `app/tasks/` — Celery 应用 + 任务 + Beat 调度（每 5 分钟轮询）
 - Phase 2c: Docker Compose 新增 `celery_worker` + `celery_beat` 服务
 - Phase 2c: 10 个单元测试（`tests/test_cleanup.py`），mock 检测阈值
 
 **本次 Phase 2c 实现（2026-07-06）:**
-- 新建 `app/core/cleanup.py` — `release_overdue_seats()` 释放逾期座位（超过预约时段结束时间仍未签到），Celery Beat 和懒清理共用
-- 新建 `app/tasks/celery_app.py` — Celery 应用实例，broker=Redis，backend=Redis
-- 新建 `app/tasks/worker.py` — 定义 `release_overdue_seats` Celery 共享任务
-- 新建 `app/tasks/beat_schedule.py` — Celery Beat 每 5 分钟调度配置
+- 新建 `app/core/cleanup.py` — `cleanup_expired_slots()` 释放逾期座位（超过预约时段结束时间仍未签到），Celery Beat 和懒清理共用
+- 新建 `app/tasks/celery_app.py` — Celery 应用实例，broker=Redis
+- 新建 `app/tasks/cleanup.py` — 定义 `release_expired_slots` Celery 共享任务
+- Celery Beat 调度在 `app/tasks/celery_app.py` 中配置（每 5 分钟）
 - `pyproject.toml` 新增 `celery` 依赖（含 timezone 等配置）
 - Docker Compose: `celery_worker`（启动 worker）+ `celery_beat`（启动 Beat 调度器）
 - `tests/test_cleanup.py` — 10 个测试（正常释放、无逾期、异常回滚、并发安全等），mock 当前时间检测 30 分钟阈值
@@ -218,7 +217,7 @@ front/src/
 - Redis 本地为 5.0.14，生产部署建议 ≥6.0
 - PostgreSQL 本地为 zip 包安装（`D:\P_SQL\...`），非服务模式，需手动 `pg_ctl start`
 - Celery worker 依赖 Redis 作为 broker，本地开发需先启动 Redis
-- Celery Beat 调度在 Docker Compose 中自动启动，本地开发可手动 `celery -A app.tasks.worker beat` 测试
+- Celery Beat 调度在 Docker Compose 中自动启动，本地开发可手动 `celery -A tasks.celery_app beat` 测试
 
 ## 数据库初始化
 
@@ -244,3 +243,5 @@ alembic upgrade head && python scripts/seed.py
 - Phase 2a 计划: `docs/superpowers/plans/2026-07-06-library-phase2a.md`
 - Phase 2b 设计: `docs/superpowers/specs/2026-07-06-library-phase2b-design.md`
 - Phase 2b 计划: `docs/superpowers/plans/2026-07-06-library-phase2b.md`
+- Phase 2c 设计: `docs/superpowers/specs/2026-07-06-library-phase2c-design.md`
+- Phase 2c 计划: `docs/superpowers/plans/2026-07-06-library-phase2c.md`
