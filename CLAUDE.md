@@ -133,6 +133,41 @@ tests/
 2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 3. Phase 2b：Celery 超时释放 + 座位可视化前端
 
+## 断点续接 — 2026-07-06
+
+**当前状态:** Phase 2a，24 个计划任务中的 Task 1-8 + 12 已完成（42 tests passed）。
+
+**已完成的任务:**
+- Task 1: 依赖安装 ✅
+- Task 2: core/ (database, settings) ✅
+- Task 3: models/ (7个SQLAlchemy模型) ✅
+- Task 4: Alembic 迁移 ✅
+- Task 5: security.py + 单元测试（5 passed） ✅
+- Task 6: deps.py（get_db, get_current_user） ✅
+- Task 7: lock.py + 单元测试（5 passed） ✅
+- Task 8: auth schemas ✅
+- Task 12: seat schemas ✅
+
+**下一个任务 — Task 9: Auth Service**
+- 文件: `app/backend/service/auth_service.py`（新建）
+- 内容: register, login, refresh, get_user 方法
+- 详见: `docs/superpowers/plans/2026-07-06-library-phase2a.md` — Task 9
+
+**后续任务链:**
+```
+Task 9 (auth_service) → Task 10 (auth_router + 注册) → Task 11 (auth 集成测试)
+Task 13 (seat_service) → Task 14 (seat_router + 注册) → Task 15 (seat 集成测试)
+Task 16 (LLM扩展) → Task 17 (reservation nodes) → Task 18 (reservation graph) → Task 19 (agent 测试)
+Task 20 (最终集成验证) → Task 21 (推送)
+```
+
+**已知注意事项:**
+- passlib 已替换为 bcrypt（5.x 不兼容）
+- pytest 需要 `pytest-asyncio` + `asyncio_mode = "auto"`（已配置）
+- Redis 锁测试用 fakeredis，`acquire()` 返回 `result is not None`
+- 远程: `gitee` + `github`（没有 `origin`），推送用 `git push gitee dev && git push github dev`
+- 计划文件: `docs/superpowers/plans/2026-07-06-library-phase2a.md`
+
 ## 关键文档
 
 - Phase 1 设计: `docs/superpowers/specs/2026-07-06-library-qa-design.md`
