@@ -20,15 +20,26 @@
 - [x] Phase 1 实现计划 → `docs/superpowers/plans/2026-07-06-library-qa-phase1.md`
 - [x] Phase 1 代码实现（32 tests passed）
 - [x] README 重写为图书馆项目说明
-- [x] `.env.example` 完善（数据库、Redis、LLM API Key 占位）
+- [x] `.env.example` 完善（DeepSeek + MiniMax + Qwen 嵌入/重排序）
 - [x] Docker 部署配置
+
+## LLM / 模型配置
+
+| 厂商 | 用途 | 模型 |
+|------|------|------|
+| DeepSeek | 对话 | `deepseek-v4-flash` |
+| MiniMax | 对话 | `MiniMax-M3` |
+| Qwen (DashScope) | 嵌入 | `text-embedding-v2` (1024d) |
+| Qwen (DashScope) | 重排序 | `qwen3-rerank` |
+
+API Key 都在 `.env` 中配置（已 gitignore），模板见 `.env.example`。
 
 ## 核心设计决策
 
 | 决策 | 选择 |
 |------|------|
 | Agent 编排 | LangGraph 显式编排，1 主图 + 1 检索子图 |
-| LLM | `RuleBasedLLMClient` 扩展 9 分类，后续换真 LLM |
+| LLM | 当前 `RuleBasedLLMClient` 扩展 9 分类，后续换 DeepSeek/MiniMax |
 | 检索 | `Retriever` Protocol 插件化 — `ChromaDBRetriever` + `SQLBookLookup`（当前用 StubRetriever） |
 | State | 新包 `agents/`，不侵入 `research_agents/` |
 | 前端 | 脚手架 Vue 3 前端重写为对话界面 |
@@ -70,7 +81,7 @@ tests/
 
 ## 下一步
 
-1. 接入真实 LLM（替换 `RuleBasedLLMClient`）
+1. 实现真实 LLMClient（接入 DeepSeek/MiniMax，替换 `RuleBasedLLMClient`）
 2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 3. Phase 2：用户系统 + 座位预约（Redis 分布式锁 + Celery）
 
