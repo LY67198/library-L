@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Appointment, AppointmentStatus, SeatTimeSlot, TimeSlot
 
 SLOT_TIMES: dict[str, tuple[time, time]] = {
-    "morning": (time(8, 0), time(12, 0)),
-    "afternoon": (time(13, 0), time(17, 0)),
-    "evening": (time(18, 0), time(22, 0)),
+    "morning": (time(0, 0), time(4, 0)),
+    "afternoon": (time(5, 0), time(9, 0)),
+    "evening": (time(10, 0), time(14, 0)),
 }
 
 
@@ -40,7 +40,14 @@ async def cleanup_expired_slots(
             continue
 
         result = await db.execute(
-            select(SeatTimeSlot).join(Appointment).where(
+            select(SeatTimeSlot).join(
+                Appointment,
+                and_(
+                    SeatTimeSlot.seat_id == Appointment.seat_id,
+                    SeatTimeSlot.date == Appointment.date,
+                    SeatTimeSlot.slot == Appointment.slot,
+                ),
+            ).where(
                 and_(
                     SeatTimeSlot.date == date_value,
                     SeatTimeSlot.slot == TimeSlot(s),
