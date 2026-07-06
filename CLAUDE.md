@@ -23,7 +23,7 @@
 - [x] `.env.example` 完善（DeepSeek + MiniMax + Qwen 嵌入/重排序）
 - [x] Docker 部署配置
 
-**Phase 2a — 进行中:**
+**Phase 2a — 已完成:**
 
 - [x] 设计文档 → `docs/superpowers/specs/2026-07-06-library-phase2a-design.md`
 - [x] 实现计划 → `docs/superpowers/plans/2026-07-06-library-phase2a.md`
@@ -33,9 +33,9 @@
 - [x] Alembic 迁移初始化
 - [x] Auth/Seat Schemas
 - [x] 单元测试：security (5) + lock (5) = 10 tests passed
-- [ ] Auth/Seat Service + Router — 待实现
-- [ ] Agent 层 reservation_subgraph — 待实现
-- [ ] 集成测试 + E2E — 待实现
+- [x] Auth/Seat Service + Router → 注册/登录/refresh/me + 座位列表/预约/取消/查预约
+- [x] Agent 层 reservation_subgraph → 5 节点子图替换 stub
+- [x] 集成测试 + E2E → 56 tests passed
 
 ## LLM / 模型配置
 
@@ -101,72 +101,49 @@ app/
     ├── router/
     │   ├── chat_router.py   ← Phase 1
     │   ├── book_router.py   ← Phase 1
-    │   ├── auth_router.py   ← Phase 2a (待实现)
-    │   └── seat_router.py   ← Phase 2a (待实现)
+    │   ├── auth_router.py   ← Phase 2a ✅
+    │   └── seat_router.py   ← Phase 2a ✅
     ├── schemas/
     │   ├── chat.py          ← Phase 1
     │   ├── auth.py          ← Phase 2a
     │   └── seat.py          ← Phase 2a
     └── service/
         ├── chat_service.py  ← Phase 1
-        ├── auth_service.py  ← Phase 2a (待实现)
-        └── seat_service.py  ← Phase 2a (待实现)
+        ├── auth_service.py  ← Phase 2a ✅
+        └── seat_service.py  ← Phase 2a ✅
 tests/
 ├── test_intent_classification.py  ← 12 tests
 ├── test_library_graph.py          ← 14 tests
 ├── test_chat_api.py               ← 6 tests
 ├── test_security.py               ← 5 tests (Phase 2a)
 ├── test_lock.py                   ← 5 tests (Phase 2a)
-├── test_auth_api.py               ← Phase 2a (待实现)
-└── test_seat_api.py               ← Phase 2a (待实现)
+├── test_auth_api.py               ← Phase 2a ✅
+└── test_seat_api.py               ← Phase 2a ✅
 ```
 
 ## 下一步
 
-**Phase 2a 剩余（当前）:**
-1. Auth/Seat Service + Router 实现 + 集成测试
-2. Agent 层 reservation_subgraph（从 stub 升级）
-3. E2E 验证 + 最终集成测试
-
-**后续:**
-1. 实现真实 LLMClient（对话用 MiniMax，嵌入/重排序用 Qwen）
+**后续 Phase:**
+1. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
 2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 3. Phase 2b：Celery 超时释放 + 座位可视化前端
+4. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
 
-## 断点续接 — 2026-07-06
+## 断点续接 — 2026-07-06（Phase 2a 完成）
 
-**当前状态:** Phase 2a，24 个计划任务中的 Task 1-8 + 12 已完成（42 tests passed）。
+**当前状态:** Phase 2a 全部 21 个任务完成，56 tests passed。
 
-**已完成的任务:**
-- Task 1: 依赖安装 ✅
-- Task 2: core/ (database, settings) ✅
-- Task 3: models/ (7个SQLAlchemy模型) ✅
-- Task 4: Alembic 迁移 ✅
-- Task 5: security.py + 单元测试（5 passed） ✅
-- Task 6: deps.py（get_db, get_current_user） ✅
-- Task 7: lock.py + 单元测试（5 passed） ✅
-- Task 8: auth schemas ✅
-- Task 12: seat schemas ✅
+**已实现:**
+- Auth: POST /api/v1/auth/register, login, refresh, GET /me
+- Seats: GET /api/v1/seats, POST /seats/{id}/book, GET /appointments, POST /appointments/{id}/cancel
+- Agent: reservation_subgraph（5 节点）替换 reservation_stub，返回引导性回复
+- LLM: extract_booking_params, extract_cancel_params, format_reservation_response
 
-**下一个任务 — Task 9: Auth Service**
-- 文件: `app/backend/service/auth_service.py`（新建）
-- 内容: register, login, refresh, get_user 方法
-- 详见: `docs/superpowers/plans/2026-07-06-library-phase2a.md` — Task 9
-
-**后续任务链:**
-```
-Task 9 (auth_service) → Task 10 (auth_router + 注册) → Task 11 (auth 集成测试)
-Task 13 (seat_service) → Task 14 (seat_router + 注册) → Task 15 (seat 集成测试)
-Task 16 (LLM扩展) → Task 17 (reservation nodes) → Task 18 (reservation graph) → Task 19 (agent 测试)
-Task 20 (最终集成验证) → Task 21 (推送)
-```
-
-**已知注意事项:**
-- passlib 已替换为 bcrypt（5.x 不兼容）
+**已知注意事项（不变）:**
+- bcrypt 直接使用（passlib 5.x 不兼容）
 - pytest 需要 `pytest-asyncio` + `asyncio_mode = "auto"`（已配置）
 - Redis 锁测试用 fakeredis，`acquire()` 返回 `result is not None`
-- 远程: `gitee` + `github`（没有 `origin`），推送用 `git push gitee dev && git push github dev`
-- 计划文件: `docs/superpowers/plans/2026-07-06-library-phase2a.md`
+- 远程: `gitee` + `github`，推送用 `git push gitee dev && git push github dev`
 
 ## 关键文档
 
