@@ -4,7 +4,7 @@
 
 **Goal:** 在 deep_research_scaffold 基础上实现图书馆 AI 智能问答系统 Phase 1（检索域完整实现 + 其余 stub）
 
-**Architecture:** `library_agents/` 新包与 `research_agents/` 同级并行。主图做 9 意图分类路由，检索域子图走 understand → retrieve → format 节点链。`Retriever` Protocol 提供 ChromaDB + SQL 两种实现。`RuleBasedLLMClient` 扩展 9 分类方法。
+**Architecture:** `app/agents/` 新包实现多 Agent 协作，`app/retrieval/` 独立检索引擎。主图做 9 意图分类路由，检索域子图走 understand → retrieve → format 节点链。`Retriever` Protocol 提供 ChromaDB + SQL 两种实现。`RuleBasedLLMClient` 扩展 9 分类方法。
 
 **Tech Stack:** FastAPI, LangGraph, ChromaDB, Pydantic, Vue 3, Docker
 
@@ -13,15 +13,15 @@
 ### Task 1: LibraryState — 扩展的共享状态
 
 **Files:**
-- Create: `app/library_agents/__init__.py`
-- Create: `app/library_agents/state.py`
+- Create: `app/agents/__init__.py`
+- Create: `app/agents/state.py`
 
-- [ ] **Step 1: Write `app/library_agents/__init__.py`**
+- [ ] **Step 1: Write `app/agents/__init__.py`**
 
 ```python
 ```
 
-- [ ] **Step 2: Write `app/library_agents/state.py`**
+- [ ] **Step 2: Write `app/agents/state.py`**
 
 ```python
 from __future__ import annotations
@@ -72,7 +72,7 @@ def create_initial_library_state(
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/library_agents/__init__.py app/library_agents/state.py
+git add app/agents/__init__.py app/agents/state.py
 git commit -m "feat: add LibraryState with create_initial_library_state"
 ```
 
@@ -81,9 +81,9 @@ git commit -m "feat: add LibraryState with create_initial_library_state"
 ### Task 2: ChatConfig — 聊天配置
 
 **Files:**
-- Create: `app/library_agents/config.py`
+- Create: `app/agents/config.py`
 
-- [ ] **Step 1: Write `app/library_agents/config.py`**
+- [ ] **Step 1: Write `app/agents/config.py`**
 
 ```python
 from __future__ import annotations
@@ -103,7 +103,7 @@ class ChatConfig:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/library_agents/config.py
+git add app/agents/config.py
 git commit -m "feat: add ChatConfig dataclass"
 ```
 
@@ -112,10 +112,10 @@ git commit -m "feat: add ChatConfig dataclass"
 ### Task 3: Retriever Protocol + StubRetriever
 
 **Files:**
-- Create: `app/library_agents/retrieval/__init__.py`
-- Create: `app/library_agents/retrieval/protocol.py`
+- Create: `app/agents/retrieval/__init__.py`
+- Create: `app/agents/retrieval/protocol.py`
 
-- [ ] **Step 1: Write `app/library_agents/retrieval/__init__.py`**
+- [ ] **Step 1: Write `app/agents/retrieval/__init__.py`**
 
 ```python
 from .protocol import Retriever, StubRetriever
@@ -123,7 +123,7 @@ from .protocol import Retriever, StubRetriever
 __all__ = ["Retriever", "StubRetriever"]
 ```
 
-- [ ] **Step 2: Write `app/library_agents/retrieval/protocol.py`**
+- [ ] **Step 2: Write `app/agents/retrieval/protocol.py`**
 
 ```python
 from __future__ import annotations
@@ -157,7 +157,7 @@ class StubRetriever:
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/library_agents/retrieval/
+git add app/agents/retrieval/
 git commit -m "feat: add Retriever Protocol and StubRetriever"
 ```
 
@@ -166,9 +166,9 @@ git commit -m "feat: add Retriever Protocol and StubRetriever"
 ### Task 4: Chat Schemas — 请求/响应 Pydantic 模型
 
 **Files:**
-- Create: `app/backend/schemas/chat.py`
+- Create: `app/schemas/chat.py`
 
-- [ ] **Step 1: Write `app/backend/schemas/chat.py`**
+- [ ] **Step 1: Write `app/schemas/chat.py`**
 
 ```python
 from __future__ import annotations
@@ -201,7 +201,7 @@ class BookSearchResult(BaseModel):
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/backend/schemas/chat.py
+git add app/schemas/chat.py
 git commit -m "feat: add ChatRequest, ChatResponse, BookSearchResult schemas"
 ```
 
@@ -334,8 +334,8 @@ git commit -m "feat: extend LLMClient with 9 library intent classification"
 ### Task 6: ChromaDBRetriever + SQLBookLookup
 
 **Files:**
-- Create: `app/library_agents/retrieval/chroma_retriever.py`
-- Create: `app/library_agents/retrieval/sql_book_lookup.py`
+- Create: `app/agents/retrieval/chroma_retriever.py`
+- Create: `app/agents/retrieval/sql_book_lookup.py`
 
 - [ ] **Step 1: Write `chroma_retriever.py`**
 
@@ -478,7 +478,7 @@ class SQLBookLookup:
         ]
 ```
 
-- [ ] **Step 3: Update `app/library_agents/retrieval/__init__.py`**
+- [ ] **Step 3: Update `app/agents/retrieval/__init__.py`**
 
 ```python
 from .protocol import Retriever, StubRetriever
@@ -491,7 +491,7 @@ __all__ = ["Retriever", "StubRetriever", "ChromaDBRetriever", "SQLBookLookup"]
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/library_agents/retrieval/
+git add app/agents/retrieval/
 git commit -m "feat: add ChromaDBRetriever and SQLBookLookup"
 ```
 
@@ -500,9 +500,9 @@ git commit -m "feat: add ChromaDBRetriever and SQLBookLookup"
 ### Task 7: Library Nodes — 意图分类 + 检索 + Stub + 直接回答
 
 **Files:**
-- Create: `app/library_agents/nodes.py`
+- Create: `app/agents/nodes.py`
 
-- [ ] **Step 1: Write `app/library_agents/nodes.py`**
+- [ ] **Step 1: Write `app/agents/nodes.py`**
 
 ```python
 from __future__ import annotations
@@ -633,7 +633,7 @@ def _fallback_classify(query: str) -> str:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/library_agents/nodes.py
+git add app/agents/nodes.py
 git commit -m "feat: add library nodes — intent, retrieval, stub, direct_answer"
 ```
 
@@ -642,9 +642,9 @@ git commit -m "feat: add library nodes — intent, retrieval, stub, direct_answe
 ### Task 8: Library Graph — 主图 + retrieval 子图
 
 **Files:**
-- Create: `app/library_agents/graph.py`
+- Create: `app/agents/graph.py`
 
-- [ ] **Step 1: Write `app/library_agents/graph.py`**
+- [ ] **Step 1: Write `app/agents/graph.py`**
 
 ```python
 from __future__ import annotations
@@ -759,7 +759,7 @@ def _error_response_node(state: LibraryState) -> dict:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/library_agents/graph.py
+git add app/agents/graph.py
 git commit -m "feat: add library graph — main graph + retrieval subgraph"
 ```
 
@@ -768,9 +768,9 @@ git commit -m "feat: add library graph — main graph + retrieval subgraph"
 ### Task 9: ChatService — 组装 + SSE 桥接
 
 **Files:**
-- Create: `app/backend/service/chat_service.py`
+- Create: `app/services/chat_service.py`
 
-- [ ] **Step 1: Write `app/backend/service/chat_service.py`**
+- [ ] **Step 1: Write `app/services/chat_service.py`**
 
 ```python
 from __future__ import annotations
@@ -780,11 +780,11 @@ from threading import Lock, Thread
 from typing import AsyncIterator
 
 from research_agents.adapters.llm import RuleBasedLLMClient
-from library_agents.config import ChatConfig
-from library_agents.graph import build_library_graph
-from library_agents.nodes import LibraryNodeContext
-from library_agents.retrieval.protocol import StubRetriever
-from library_agents.state import create_initial_library_state
+from agents.config import ChatConfig
+from agents.graph import build_library_graph
+from agents.nodes import LibraryNodeContext
+from agents.retrieval.protocol import StubRetriever
+from agents.state import create_initial_library_state
 
 
 class ChatService:
@@ -887,7 +887,7 @@ def get_chat_service() -> ChatService:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add app/backend/service/chat_service.py
+git add app/services/chat_service.py
 git commit -m "feat: add ChatService with SSE streaming support"
 ```
 
@@ -896,8 +896,8 @@ git commit -m "feat: add ChatService with SSE streaming support"
 ### Task 10: Chat Router + Book Router
 
 **Files:**
-- Create: `app/backend/router/chat_router.py`
-- Create: `app/backend/router/book_router.py`
+- Create: `app/api/v1/chat_router.py`
+- Create: `app/api/v1/book_router.py`
 
 - [ ] **Step 1: Write `chat_router.py`**
 
@@ -909,8 +909,8 @@ import json
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from backend.schemas.chat import ChatRequest, ChatResponse
-from backend.service.chat_service import ChatService, get_chat_service
+from schemas.chat import ChatRequest, ChatResponse
+from services.chat_service import ChatService, get_chat_service
 
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
@@ -958,7 +958,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from backend.schemas.chat import BookSearchResult
+from schemas.chat import BookSearchResult
 
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
@@ -982,24 +982,24 @@ async def search_books(q: str = Query(..., min_length=1), limit: int = Query(def
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/backend/router/chat_router.py app/backend/router/book_router.py
+git add app/api/v1/chat_router.py app/api/v1/book_router.py
 git commit -m "feat: add chat and book API routers"
 ```
 
 ---
 
-### Task 11: Register Routers in app_main
+### Task 11: Register Routers in main.py
 
 **Files:**
-- Modify: `app/app_main.py`
+- Modify: `app/main.py`
 
-- [ ] **Step 1: Edit `app/app_main.py` — add imports and router registration**
+- [ ] **Step 1: Edit `app/main.py` — add imports and router registration**
 
 Add after the existing router imports:
 
 ```python
-from backend.router.chat_router import router as chat_router
-from backend.router.book_router import router as book_router
+from api.v1.chat_router import router as chat_router
+from api.v1.book_router import router as book_router
 ```
 
 Add after `app.include_router(research_router)`:
@@ -1012,7 +1012,7 @@ Add after `app.include_router(research_router)`:
 - [ ] **Step 2: Verify startup**
 
 ```bash
-cd app && python -c "from app_main import app; print('Routes:', [r.path for r in app.routes])"
+cd app && python -c "from main import app; print('Routes:', [r.path for r in app.routes])"
 ```
 
 Expected output includes: `/api/v1/chat`, `/api/v1/chat/stream`, `/api/v1/books`
@@ -1020,8 +1020,8 @@ Expected output includes: `/api/v1/chat`, `/api/v1/chat/stream`, `/api/v1/books`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/app_main.py
-git commit -m "feat: register chat and book routers in app_main"
+git add app/main.py
+git commit -m "feat: register chat and book routers in main.py"
 ```
 
 ---
@@ -1036,11 +1036,11 @@ git commit -m "feat: register chat and book routers in app_main"
 ```python
 import pytest
 from research_agents.adapters.llm import RuleBasedLLMClient
-from library_agents.config import ChatConfig
-from library_agents.graph import build_library_graph
-from library_agents.nodes import LibraryNodeContext
-from library_agents.retrieval.protocol import StubRetriever
-from library_agents.state import create_initial_library_state
+from agents.config import ChatConfig
+from agents.graph import build_library_graph
+from agents.nodes import LibraryNodeContext
+from agents.retrieval.protocol import StubRetriever
+from agents.state import create_initial_library_state
 
 
 @pytest.fixture
@@ -1129,7 +1129,7 @@ git commit -m "test: add graph routing integration tests (14 cases)"
 import json
 import pytest
 from fastapi.testclient import TestClient
-from app_main import app
+from main import app
 
 
 client = TestClient(app)
@@ -1197,14 +1197,14 @@ git commit -m "test: add E2E chat and book API tests"
 ### Task 14: Frontend — Chat Interface
 
 **Files:**
-- Modify: `front/src/App.vue`
-- Modify: `front/index.html`
+- Modify: `web-frontend/src/App.vue`
+- Modify: `web-frontend/index.html`
 
-- [ ] **Step 1: Edit `front/index.html` — update title**
+- [ ] **Step 1: Edit `web-frontend/index.html` — update title**
 
 Change title to: `<title>图书馆智能助手</title>`
 
-- [ ] **Step 2: Rewrite `front/src/App.vue`**
+- [ ] **Step 2: Rewrite `web-frontend/src/App.vue`**
 
 (See complete Vue file below — in actual file, replace entire content)
 
@@ -1383,7 +1383,7 @@ Expected: builds without errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add front/src/App.vue front/index.html
+git add web-frontend/src/App.vue web-frontend/index.html
 git commit -m "feat: rewrite frontend as library chat interface"
 ```
 
@@ -1431,7 +1431,7 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.app_main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 - [ ] **Step 3: Write `docker-compose.yml`**
@@ -1523,7 +1523,7 @@ Expected: all tests pass.
 - [ ] **Step 2: Verify backend starts**
 
 ```bash
-cd app && timeout 5 uvicorn app_main:app --port 8000 || true
+cd app && timeout 5 uvicorn main:app --port 8000 || true
 ```
 Expected: no import errors.
 
@@ -1531,7 +1531,7 @@ Expected: no import errors.
 
 ```bash
 # Start backend in background
-cd app && uvicorn app_main:app --port 8000 &
+cd app && uvicorn main:app --port 8000 &
 sleep 2
 # Test endpoints
 curl -s http://127.0.0.1:8000/api/v1/health
@@ -1583,7 +1583,7 @@ Task 1 (State) ─┬─→ Task 3 (Retriever Protocol) ─→ Task 6 (Retriever
                 └─→ Task 5 (LLM) ────┘                                          │
                                                                                 ├─→ Task 10 (Routers)
                                                                                 │        │
-                                                                                │        └─→ Task 11 (app_main)
+                                                                                │        └─→ Task 11 (main.py)
                                                                                 │
                                                                                 └─→ Task 12 (Integration Tests) ─→ Task 13 (E2E Tests)
                                                                                                                          │
@@ -1596,3 +1596,31 @@ Task 1 (State) ─┬─→ Task 3 (Retriever Protocol) ─→ Task 6 (Retriever
 ```
 
 Tasks 1-4 can run in parallel. Tasks 7+8 depend on 2,3,5. Tasks 12,13 (tests) depend on graph + routers.
+
+---
+
+## 后续 Phase 规划
+
+### Phase 2 — 用户系统 + 预约管理
+
+| # | 内容 | 涉及目录 |
+|---|------|----------|
+| 2.1 | Auth 模块（注册/登录/JWT） | `app/api/v1/auth_router.py`, `app/core/security.py` |
+| 2.2 | User + Appointment SQLAlchemy 模型 | `app/models/` |
+| 2.3 | 座位预约/取消/查询 API | `app/api/v1/seat_router.py` |
+| 2.4 | Redis 分布式锁并发控制 | `app/core/lock.py` |
+| 2.5 | Celery 超时释放 + 提醒任务 | `app/tasks/` |
+| 2.6 | `seat_agent` 从 stub 升级 | `app/agents/seat_agent/` |
+| 2.7 | 座位可视化前端页面 | `web-frontend/src/views/` |
+
+### Phase 3 — 读者画像 + 知识库管理 + MCP + 可观测性
+
+| # | 内容 | 涉及目录 |
+|---|------|----------|
+| 3.1 | Profile 模型 + 统计/标签/推荐 API | `app/models/`, `app/agents/profile_agent/` |
+| 3.2 | 知识库管理 CRUD（管理员） | `app/api/v1/admin_router.py` |
+| 3.3 | MCP Server（5 个 Tool） | `app/mcp_server/` |
+| 3.4 | Ragas 评估流水线 | `app/evaluation/` |
+| 3.5 | OpenTelemetry + Jaeger 集成 | `app/observability/` |
+| 3.6 | 完整 9 页面前端 | `web-frontend/src/views/` |
+| 3.7 | 数据初始化脚本 | `app/retrieval/ingestion.py` |
