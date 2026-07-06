@@ -39,7 +39,7 @@ API Key 都在 `.env` 中配置（已 gitignore），模板见 `.env.example`。
 | 决策 | 选择 |
 |------|------|
 | Agent 编排 | LangGraph 显式编排，1 主图 + 1 检索子图 |
-| LLM | 当前 `RuleBasedLLMClient` 扩展 9 分类，后续换 DeepSeek/MiniMax |
+| LLM | 当前 `RuleBasedLLMClient` 扩展 9 分类，后续接入 MiniMax（对话）、Qwen（嵌入/重排序） |
 | 检索 | `Retriever` Protocol 插件化 — `ChromaDBRetriever` + `SQLBookLookup`（当前用 StubRetriever） |
 | State | 新包 `agents/`，不侵入 `research_agents/` |
 | 前端 | 脚手架 Vue 3 前端重写为对话界面 |
@@ -81,7 +81,7 @@ tests/
 
 ## 下一步
 
-1. 实现真实 LLMClient（接入 DeepSeek/MiniMax，替换 `RuleBasedLLMClient`）
+1. 实现真实 LLMClient（对话用 MiniMax，嵌入/重排序用 Qwen）
 2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
 3. Phase 2：用户系统 + 座位预约（Redis 分布式锁 + Celery）
 
