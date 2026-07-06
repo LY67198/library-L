@@ -51,3 +51,18 @@ def test_books_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, list)
+
+
+def test_chat_booking_intent_no_longer_stub():
+    """预约相关意图不再返回 '开发中'"""
+    resp = client.post("/api/v1/chat", json={"query": "我要预约座位"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "开发中" not in data["response"]
+
+
+def test_chat_cancel_intent_no_longer_stub():
+    resp = client.post("/api/v1/chat", json={"query": "取消我的预约"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "开发中" not in data["response"]

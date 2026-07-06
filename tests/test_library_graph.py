@@ -52,10 +52,26 @@ def test_retrieval_produces_response(app):
     assert len(result["response"]) > 0
 
 
-def test_stub_returns_placeholder(app):
+def test_reservation_book_returns_guidance(app):
+    """预约节点返回引导信息而非开发中提示"""
     state = create_initial_library_state(query="我要预约座位")
     result = app.invoke(state)
-    assert "开发中" in result["response"]
+    assert "开发中" not in result["response"]
+    assert len(result["response"]) > 0
+
+
+def test_reservation_cancel_returns_guidance(app):
+    state = create_initial_library_state(query="取消我的预约")
+    result = app.invoke(state)
+    assert "开发中" not in result["response"]
+    assert len(result["response"]) > 0
+
+
+def test_reservation_query_returns_guidance(app):
+    state = create_initial_library_state(query="我的预约记录")
+    result = app.invoke(state)
+    assert "开发中" not in result["response"]
+    assert len(result["response"]) > 0
 
 
 def test_greeting_returns_friendly(app):
