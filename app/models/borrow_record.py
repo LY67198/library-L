@@ -25,7 +25,7 @@ class BorrowRecord(Base):
         String(36), ForeignKey("users.id"), nullable=False, index=True
     )
     book_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("books.id"), nullable=False
+        String(36), ForeignKey("books.id"), nullable=False, index=True
     )
     borrowed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
