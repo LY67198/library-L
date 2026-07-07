@@ -22,6 +22,8 @@ class AppSettings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     redis_url: str = "redis://localhost:6379/0"
+    dashscope_api_key: str = ""
+    embedding_model: str = "text-embedding-v2"
 
     model_config = SettingsConfigDict(
         env_file=str(ROOT_DIR / ".env"),
