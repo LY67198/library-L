@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String
@@ -20,4 +21,8 @@ class User(Base):
     student_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    api_key: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True,
+        default=lambda: uuid.uuid4().hex
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
