@@ -11,7 +11,9 @@ from .nodes import (
     format_response_node,
     intent_classifier_node,
     policy_retrieval_node,
-    profile_stub_node,
+    profile_format_node,
+    profile_query_node,
+    profile_understand_node,
     recommend_retrieve_node,
     reservation_book_node,
     reservation_cancel_node,
@@ -31,7 +33,7 @@ def build_library_graph(context: LibraryNodeContext):
     graph.add_node("intent_classifier", lambda s: intent_classifier_node(s, context))
     graph.add_node("retrieval_subgraph", _build_retrieval_subgraph(context))
     graph.add_node("reservation_subgraph", _build_reservation_subgraph(context))
-    graph.add_node("profile_stub", lambda s: profile_stub_node(s, context))
+    graph.add_node("profile_subgraph", _build_profile_subgraph(context))
     graph.add_node("direct_answer", lambda s: direct_answer_node(s, context))
 
     # --- 路由连线 ---
@@ -42,13 +44,13 @@ def build_library_graph(context: LibraryNodeContext):
         {
             "retrieval": "retrieval_subgraph",
             "reservation": "reservation_subgraph",
-            "profile": "profile_stub",
+            "profile": "profile_subgraph",
             "direct": "direct_answer",
         },
     )
     graph.add_edge("retrieval_subgraph", END)
     graph.add_edge("reservation_subgraph", END)
-    graph.add_edge("profile_stub", END)
+    graph.add_edge("profile_subgraph", END)
     graph.add_edge("direct_answer", END)
 
     return graph.compile()
@@ -146,6 +148,22 @@ def _build_reservation_subgraph(context: LibraryNodeContext):
     sub.add_edge("query_appointments", "format_response")
     sub.add_edge("cancel_appointment", "format_response")
     sub.add_edge("format_response", END)
+
+    return sub.compile()
+
+
+def _build_profile_subgraph(context: LibraryNodeContext):
+    """构建读者画像子图：understand → query → format"""
+    sub = StateGraph(LibraryState)
+
+    sub.add_node("profile_understand", lambda s: profile_understand_node(s, context))
+    sub.add_node("profile_query", lambda s: profile_query_node(s, context))
+    sub.add_node("profile_format", lambda s: profile_format_node(s, context))
+
+    sub.add_edge(START, "profile_understand")
+    sub.add_edge("profile_understand", "profile_query")
+    sub.add_edge("profile_query", "profile_format")
+    sub.add_edge("profile_format", END)
 
     return sub.compile()
 

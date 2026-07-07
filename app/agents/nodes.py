@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from agents.llm import LLMClient
@@ -20,6 +21,7 @@ class LibraryNodeContext:
     book_lookup: Retriever
     auth_service: object | None = None    # Phase 2a: AuthService
     seat_service: object | None = None    # Phase 2a: SeatService
+    session_factory: object | None = None  # Phase 4: async sessionmaker
 
 
 # --- 主图节点 ---
@@ -196,3 +198,126 @@ def reservation_format_node(state: LibraryState, context: LibraryNodeContext) ->
     """格式化预约结果"""
     response = state.get("response", "")
     return {"response": response, "sources": state.get("sources", [])}
+
+
+# --- Profile 子图节点（Phase 4） ---
+
+def profile_understand_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """解析用户消息，判断用户想查什么"""
+    query = state["query"]
+    params = context.llm.extract_profile_params(query)
+    return {"context": {"profile_type": params.get("profile_type", "all")}}
+
+
+def profile_query_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """查询 DB：User + Appointment + BorrowRecord"""
+    user_id = state.get("user_id")
+    if not user_id:
+        return {
+            "response": "请先登录后查看个人信息。",
+            "sources": [],
+            "error": "unauthenticated",
+        }
+
+    session_factory = context.session_factory
+    if session_factory is None:
+        return {
+            "response": "个人信息查询服务暂不可用。",
+            "sources": [],
+            "error": "no_db",
+        }
+
+    profile_type = state.get("context", {}).get("profile_type", "all")
+
+    async def _query():
+        from backend.service.profile_service import ProfileService
+
+        async with session_factory() as db:
+            service = ProfileService(db)
+            return await service.get_profile(user_id, profile_type)
+
+    try:
+        result = asyncio.run(_query())
+    except Exception:
+        return {
+            "response": "查询个人信息时出错，请稍后重试。",
+            "sources": [],
+            "error": "profile_query_failed",
+        }
+
+    user = result["user"]
+    if user is None:
+        return {
+            "response": "未找到用户信息。",
+            "sources": [],
+            "error": None,
+        }
+
+    # 序列化 appointment 数据
+    appointments = []
+    for a in result["appointments"]:
+        seat = getattr(a, "seat", None)
+        floor_name = ""
+        zone_name = ""
+        seat_number = ""
+        if seat:
+            # Seat model has zone relationship, zone has floor relationship
+            zone = getattr(seat, "zone", None)
+            if zone:
+                floor_name = getattr(zone, "floor_name", "") or ""
+                zone_name = getattr(zone, "name", "") or ""
+            seat_number = getattr(seat, "seat_number", "") or ""
+        appointments.append({
+            "appointment_id": a.id,
+            "date": str(a.date),
+            "slot": a.slot.value if hasattr(a.slot, "value") else str(a.slot),
+            "status": a.status.value if hasattr(a.status, "value") else str(a.status),
+            "floor_name": floor_name,
+            "zone_name": zone_name,
+            "seat_number": seat_number,
+        })
+
+    # 序列化 borrow_record 数据
+    borrow_records = []
+    for br in result["borrow_records"]:
+        book = getattr(br, "book", None)
+        borrow_records.append({
+            "id": br.id,
+            "book_title": book.title if book else "-",
+            "borrowed_at": str(br.borrowed_at),
+            "due_at": str(br.due_at),
+            "returned_at": str(br.returned_at) if br.returned_at else None,
+            "status": br.status.value if hasattr(br.status, "value") else str(br.status),
+        })
+
+    user_info = {
+        "display_name": user.display_name,
+        "student_id": user.student_id,
+        "username": user.username,
+    }
+
+    return {
+        "context": {
+            "profile_type": profile_type,
+            "user_info": user_info,
+            "appointments": appointments,
+            "borrow_records": borrow_records,
+        },
+        "error": None,
+    }
+
+
+def profile_format_node(state: LibraryState, context: LibraryNodeContext) -> dict:
+    """LLM 格式化回复"""
+    error = state.get("error")
+    if error:
+        fallback = state.get("fallback_response", "服务异常，请稍后重试。")
+        return {"response": fallback, "sources": []}
+
+    ctx = state.get("context", {})
+    user_info = ctx.get("user_info", {})
+    appointments = ctx.get("appointments", [])
+    borrow_records = ctx.get("borrow_records", [])
+
+    response = context.llm.format_profile_response(user_info, appointments, borrow_records)
+    return {"response": response, "sources": []}
