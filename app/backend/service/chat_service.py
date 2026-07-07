@@ -15,6 +15,7 @@ from agents.graph import build_library_graph
 from agents.nodes import LibraryNodeContext
 from agents.retrieval.protocol import StubRetriever
 from agents.state import create_initial_library_state
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 
 def _create_llm_client():
@@ -50,6 +51,11 @@ class ChatService:
         self._initialized = False
         self._app = None
         self._config = ChatConfig()
+        self._session_factory = None
+
+    def set_session_factory(self, factory) -> None:
+        """注入 async session factory，供 ProfileService 使用"""
+        self._session_factory = factory
 
     def _ensure_initialized(self) -> None:
         if self._initialized:
@@ -62,6 +68,7 @@ class ChatService:
                 llm=_create_llm_client(),
                 retriever=StubRetriever(),
                 book_lookup=StubRetriever(),
+                session_factory=self._session_factory,
             )
             self._app = build_library_graph(context)
             self._initialized = True
@@ -154,4 +161,12 @@ def get_chat_service() -> ChatService:
     global _CHAT_SERVICE
     if _CHAT_SERVICE is None:
         _CHAT_SERVICE = ChatService()
+        try:
+            settings = get_settings()
+            engine = create_async_engine(settings.database_url, echo=False)
+            _CHAT_SERVICE.set_session_factory(
+                async_sessionmaker(engine, expire_on_commit=False)
+            )
+        except Exception:
+            pass
     return _CHAT_SERVICE

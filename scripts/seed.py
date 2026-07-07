@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent.parent / "app"
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.config.settings import get_settings
 from core.security import hash_password
-from models import Book, Floor, Seat, User, Zone
+from models import Book, BorrowRecord, BorrowStatus, Floor, Seat, User, Zone
 from models.seat import SeatStatus
 from models.zone import ZoneType
 
@@ -114,6 +115,46 @@ async def seed():
         ]
         db.add_all(sample_books)
         await db.commit()
+
+        # 借阅记录种子数据
+        books = (await db.execute(select(Book).limit(10))).scalars().all()
+        now = datetime.now(timezone.utc)
+
+        borrows = [
+            BorrowRecord(
+                user_id=admin.id,
+                book_id=books[0].id,
+                borrowed_at=now - timedelta(days=30),
+                due_at=now + timedelta(days=30),
+                status=BorrowStatus.borrowed,
+            ),
+            BorrowRecord(
+                user_id=admin.id,
+                book_id=books[1].id,
+                borrowed_at=now - timedelta(days=60),
+                due_at=now - timedelta(days=30),
+                status=BorrowStatus.overdue,
+            ),
+            BorrowRecord(
+                user_id=admin.id,
+                book_id=books[2].id,
+                borrowed_at=now - timedelta(days=90),
+                due_at=now - timedelta(days=60),
+                returned_at=now - timedelta(days=55),
+                status=BorrowStatus.returned,
+            ),
+        ]
+        db.add_all(borrows)
+
+        # 更新对应图书的 available 数量
+        for b in borrows:
+            if b.status in (BorrowStatus.borrowed, BorrowStatus.overdue):
+                book = await db.get(Book, b.book_id)
+                if book and book.available > 0:
+                    book.available -= 1
+
+        await db.commit()
+        print(f"借阅记录: {len(borrows)} 条")
 
     # 验证
     async with factory() as db:

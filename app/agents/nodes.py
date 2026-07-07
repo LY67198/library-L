@@ -216,7 +216,6 @@ def profile_query_node(state: LibraryState, context: LibraryNodeContext) -> dict
         return {
             "response": "请先登录后查看个人信息。",
             "sources": [],
-            "error": "unauthenticated",
         }
 
     session_factory = context.session_factory
@@ -224,7 +223,6 @@ def profile_query_node(state: LibraryState, context: LibraryNodeContext) -> dict
         return {
             "response": "个人信息查询服务暂不可用。",
             "sources": [],
-            "error": "no_db",
         }
 
     profile_type = state.get("context", {}).get("profile_type", "all")
@@ -242,7 +240,6 @@ def profile_query_node(state: LibraryState, context: LibraryNodeContext) -> dict
         return {
             "response": "查询个人信息时出错，请稍后重试。",
             "sources": [],
-            "error": "profile_query_failed",
         }
 
     user = result["user"]
@@ -315,7 +312,11 @@ def profile_format_node(state: LibraryState, context: LibraryNodeContext) -> dic
         return {"response": fallback, "sources": []}
 
     ctx = state.get("context", {})
-    user_info = ctx.get("user_info", {})
+    user_info = ctx.get("user_info")
+    if user_info is None:
+        # profile_query_node already set a terminal response (e.g. unauthenticated, no_db)
+        return {}
+
     appointments = ctx.get("appointments", [])
     borrow_records = ctx.get("borrow_records", [])
 
