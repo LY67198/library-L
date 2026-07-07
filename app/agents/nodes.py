@@ -29,10 +29,14 @@ class LibraryNodeContext:
 def intent_classifier_node(state: LibraryState, context: LibraryNodeContext) -> dict:
     """9 分类意图识别，LLM 失败时关键词兜底"""
     query = state["query"]
-    try:
-        intent = context.llm.classify_library_intent(query)
-    except Exception:
-        intent = _fallback_classify(query)
+    # 纯问候语快速预检 — 短消息且只包含问候词，不调 LLM
+    if _is_pure_greeting(query):
+        intent = "greeting"
+    else:
+        try:
+            intent = context.llm.classify_library_intent(query)
+        except Exception:
+            intent = _fallback_classify(query)
     subgraph = _intent_to_subgraph(intent)
     return {"intent": intent, "subgraph": subgraph}
 
@@ -139,10 +143,27 @@ def _intent_to_subgraph(intent: str) -> str:
     return mapping.get(intent, "direct")
 
 
+def _is_pure_greeting(query: str) -> bool:
+    """检测是否为纯问候语（不含实质性内容），短消息且精确匹配"""
+    lowered = query.strip().lower()
+    pure_greetings = {"你好", "您好", "hi", "hello", "嗨", "早上好", "下午好", "晚上好", "嘿", "哈喽"}
+    return lowered in pure_greetings
+
+
 def _fallback_classify(query: str) -> str:
     """LLM 不可用时的关键词兜底分类"""
     lowered = query.lower()
-    if any(w in lowered for w in ["书", "book", "找", "推荐", "检索"]):
+    if any(w in lowered for w in ["你好", "您好", "hi", "hello", "嗨", "早上好", "下午好", "晚上好"]):
+        return "greeting"
+    if any(w in lowered for w in ["取消预约", "删除预约"]):
+        return "cancel_appointment"
+    if any(w in lowered for w in ["预约记录", "我的预约", "查预约"]):
+        return "query_appointment"
+    if any(w in lowered for w in ["借阅记录", "借了哪些", "借过什么"]):
+        return "profile_query"
+    if any(w in lowered for w in ["推荐", "推荐几本", "有什么好书"]):
+        return "recommend_book"
+    if any(w in lowered for w in ["书", "book", "找", "检索"]):
         return "search_book"
     if any(w in lowered for w in ["几点", "开门", "关门", "借", "罚款", "规则"]):
         return "policy_query"
