@@ -10,6 +10,7 @@ from backend.schemas.profile import (
     ProfileResponse,
     UserInfo,
 )
+from backend.schemas.seat import AppointmentItem
 from backend.service.profile_service import ProfileService
 from core.database import get_db
 from core.deps import get_required_user
@@ -35,8 +36,6 @@ async def get_profile(
             student_id=u.student_id,
             username=u.username,
         )
-
-    from backend.schemas.seat import AppointmentItem
 
     appointments = [
         AppointmentItem(

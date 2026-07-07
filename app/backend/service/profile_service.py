@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models import User, Appointment, BorrowRecord
+from models import User, Appointment, BorrowRecord, Seat, Zone
 from models.appointment import AppointmentStatus
 from models.borrow_record import BorrowStatus
 
@@ -32,7 +32,7 @@ class ProfileService:
         appointments = []
         borrow_records = []
 
-        if profile_type in ("all",):
+        if profile_type == "all":
             # 查询当前有效预约
             if user:
                 appt_result = await self._db.execute(
@@ -45,7 +45,7 @@ class ProfileService:
                         ]),
                     )
                     .order_by(Appointment.created_at.desc())
-                    .options(selectinload(Appointment.seat))
+                    .options(selectinload(Appointment.seat).selectinload(Seat.zone).selectinload(Zone.floor))
                 )
                 appointments = list(appt_result.scalars().all())
 
