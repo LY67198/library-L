@@ -191,3 +191,20 @@ button:disabled {
   }
 }
 
+.nav-links {
+  margin-top: 16px;
+}
+.nav-link {
+  display: inline-block;
+  padding: 10px 24px;
+  color: #fff;
+  background: #0f766e;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+.nav-link:hover {
+  background: #0d6b63;
+}
+

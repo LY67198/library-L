@@ -9,4 +9,5 @@ node_modules/
 dist/
 *.log
 .superpowers/
+*.egg-info/
 
