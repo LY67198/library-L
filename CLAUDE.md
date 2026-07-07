@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端，Phase 2c 实现 Celery 超时释放，Phase 3 已实现知识库管理（图书 + 政策文档）。
+基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端，Phase 2c 实现 Celery 超时释放，Phase 3 已实现知识库管理，Phase 3.5 已接入真实 LLM（MiniMax + DeepSeek）。
 
 ## 仓库
 
@@ -198,10 +198,46 @@ front/src/
 - [x] 96 tests passed（非 DB）+ 前端构建通过
 
 **Phase 3 后续:**
-1. 🔜 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
+1. ✅ 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）— 2026-07-07 完成
 2. 🔜 读者画像 + MCP Server + 可观测性
 
 **Phase 3 实施计划:** `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
+
+## 断点续接 — 2026-07-07（真实 LLMClient ✅ 已完成）
+
+**当前状态:** 真实 LLMClient 已接入，MiniMax 主力 + DeepSeek 兜底 + 规则引擎终极兜底，132 tests passed。
+
+### 真实 LLMClient — 已全部完成
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-07-real-llm-client-design.md`
+- [x] 实施计划 → `docs/superpowers/plans/2026-07-07-real-llm-client.md`
+- [x] AppSettings 新增 MiniMax/DeepSeek 6 个配置字段
+- [x] `app/agents/llm_client/` — `RealLLMClient` + 5 个 System Prompt + 辅助函数
+- [x] 5 个图书馆核心方法替换为真实 LLM 调用（`classify_library_intent`、`extract_booking_params`、`extract_cancel_params`、`format_library_response`、`format_reservation_response`）
+- [x] 8 个深度调研方法委托给 `RuleBasedLLMClient`
+- [x] `ChatService` 自动检测 API Key，优先使用 `RealLLMClient`，否则回退规则引擎
+- [x] 27 个单元测试（`tests/test_real_llm_client.py`）— mock 覆盖完整链路
+- [x] 全量 132 tests passed + 前端构建通过
+
+### 调用链
+
+```
+用户请求 → RealLLMClient.xxx()
+  → MiniMax (OpenAI SDK, Chat Completions)
+  → 失败? → DeepSeek (OpenAI SDK)
+  → 失败? → RuleBasedLLMClient（关键词/模板兜底）
+```
+
+### 新文件
+
+```
+app/agents/llm_client/
+├── __init__.py          ← 导出 RealLLMClient
+└── client.py            ← RealLLMClient + 5 prompts + _call_with_fallback
+
+tests/
+└── test_real_llm_client.py  ← 27 tests（mock-based）
+```
 
 ## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 
@@ -291,3 +327,5 @@ alembic upgrade head && python scripts/seed.py
 - Phase 2c 计划: `docs/superpowers/plans/2026-07-06-library-phase2c.md`
 - Phase 3 KB 设计: `docs/superpowers/specs/2026-07-06-library-phase3-kb-design.md`
 - Phase 3 KB 计划: `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
+- 真实 LLMClient 设计: `docs/superpowers/specs/2026-07-07-real-llm-client-design.md`
+- 真实 LLMClient 计划: `docs/superpowers/plans/2026-07-07-real-llm-client.md`
