@@ -151,7 +151,7 @@ class RealLLMClient:
 
     def classify_library_intent(self, query: str) -> str:
         try:
-            return _call_with_fallback(
+            result = _call_with_fallback(
                 primary=self._primary,
                 primary_model=self._primary_model,
                 secondary=self._secondary,
@@ -162,6 +162,16 @@ class RealLLMClient:
                 temperature=0.1,
                 max_tokens=16,
             )
+            # LLM 返回 other 时，用规则引擎交叉验证，避免误分类
+            if result == "other":
+                fallback_result = self._fallback.classify_library_intent(query)
+                if fallback_result != "other":
+                    logger.info(
+                        "LLM returned 'other', fallback returned '%s', using fallback",
+                        fallback_result,
+                    )
+                    return fallback_result
+            return result
         except RuntimeError:
             logger.warning("Intent classification LLM failed, using rule-based fallback")
             return self._fallback.classify_library_intent(query)
