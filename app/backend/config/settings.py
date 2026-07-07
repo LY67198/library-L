@@ -32,6 +32,13 @@ class AppSettings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-v4-flash"
 
+    # 可观测性
+    otel_enabled: bool = True
+    otel_exporter_jaeger_enabled: bool = False
+    otel_jaeger_agent_host: str = "localhost"
+    otel_jaeger_agent_port: int = 6831
+    log_format: str = "text"  # text | json
+
     model_config = SettingsConfigDict(
         env_file=str(ROOT_DIR / ".env"),
         env_file_encoding="utf-8",
