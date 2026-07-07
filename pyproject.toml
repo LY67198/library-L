@@ -20,6 +20,10 @@ dependencies = [
   "chromadb>=1.5.9",
   "python-multipart>=0.0.32",
   "mcp[cli]>=1.24,<2",
+  "opentelemetry-api>=1.35",
+  "opentelemetry-sdk>=1.35",
+  "opentelemetry-instrumentation-fastapi>=0.56",
+  "python-json-logger>=3.3",
 ]
 
 [tool.setuptools.packages.find]
