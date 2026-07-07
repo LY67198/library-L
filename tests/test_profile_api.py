@@ -79,7 +79,7 @@ async def test_get_profile_unauthenticated(db_session):
 @pytest.mark.asyncio
 async def test_get_profile_all(db_session):
     """认证用户获取完整画像：user + appointments + borrow_records"""
-    from models import Book, User
+    from models import Book
 
     app, orig_factory = await _setup_app(db_session)
 
@@ -119,7 +119,7 @@ async def test_get_profile_all(db_session):
         assert data["user"]["username"] == "profuser"
         assert data["user"]["display_name"] == "画像测试"
         assert data["user"]["student_id"] == "2024002"
-        assert isinstance(data["appointments"], list)
+        assert data["appointments"] == []
         assert isinstance(data["borrow_records"], list)
         assert len(data["borrow_records"]) == 1
         assert data["borrow_records"][0]["book_title"] == "测试图书"
