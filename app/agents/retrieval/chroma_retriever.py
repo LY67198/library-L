@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ChromaDBRetriever:
     """基于 ChromaDB 的政策文档向量检索器，支持搜索、写入和按文档 ID 删除"""
@@ -67,13 +71,18 @@ class ChromaDBRetriever:
             return
         self._ensure_initialized()
         assert self._collection is not None
-        ids = [c["id"] for c in chunks]
-        documents = [c["document"] for c in chunks]
-        metadatas = [c.get("metadata", {}) for c in chunks]
-        self._collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+        try:
+            ids = [c["id"] for c in chunks]
+            documents = [c["document"] for c in chunks]
+            metadatas = [c.get("metadata", {}) for c in chunks]
+            self._collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(f"ChromaDB 写入失败: {exc}")
 
     def delete_by_doc_id(self, doc_id: str):
-        """按 doc_id 前缀删除对应 chunks"""
+        """按 doc_id 删除对应 chunks"""
         self._ensure_initialized()
         assert self._collection is not None
         try:
@@ -81,5 +90,18 @@ class ChromaDBRetriever:
             if existing and existing.get("ids"):
                 self._collection.delete(ids=existing["ids"])
         except Exception:
-            # ChromaDB where 过滤可能失败（旧版本/无 metadata），降级为全量匹配删除
-            pass
+            # ChromaDB where 过滤可能失败（旧版本/无 metadata），降级为遍历匹配
+            logger.warning("ChromaDB where 过滤失败，尝试遍历匹配删除 doc_id=%s", doc_id)
+            try:
+                all_items = self._collection.get()
+                if all_items and all_items.get("ids"):
+                    matched_ids = []
+                    metadatas = all_items.get("metadatas") or []
+                    for i, item_id in enumerate(all_items["ids"]):
+                        meta = metadatas[i] if i < len(metadatas) else {}
+                        if meta.get("doc_id") == doc_id:
+                            matched_ids.append(item_id)
+                    if matched_ids:
+                        self._collection.delete(ids=matched_ids)
+            except Exception as fallback_exc:
+                logger.warning("ChromaDB 降级删除也失败 doc_id=%s: %s", doc_id, fallback_exc)
