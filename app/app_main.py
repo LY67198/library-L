@@ -18,6 +18,8 @@ from backend.router.chat_router import router as chat_router
 from backend.router.book_router import router as book_router
 from backend.router.auth_router import router as auth_router
 from backend.router.seat_router import router as seat_router
+from backend.router.admin_book_router import router as admin_book_router
+from backend.router.admin_doc_router import router as admin_doc_router
 
 
 logging.basicConfig(
@@ -42,6 +44,8 @@ def create_app() -> FastAPI:
     app.include_router(book_router)
     app.include_router(auth_router)
     app.include_router(seat_router)
+    app.include_router(admin_book_router)
+    app.include_router(admin_doc_router)
     return app
 
 
