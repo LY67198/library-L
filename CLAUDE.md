@@ -200,7 +200,8 @@ front/src/
 **Phase 3 后续:**
 1. ✅ 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）— 2026-07-07 完成
 2. ✅ MCP Server — 2026-07-07 完成（含中间件引用修复）
-3. 🔜 读者画像 + 可观测性
+3. ✅ 可观测性 — 2026-07-07 完成（TraceMiddleware + 结构化日志 + OTel）
+4. 🔜 读者画像
 
 **Phase 3 实施计划:** `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
 
@@ -283,6 +284,44 @@ tools/list 需先完成 MCP initialize 握手（协议要求）：
 # 3. POST /messages → notifications/initialized
 # 4. 现在可以调用 tools/list
 ```
+
+## 断点续接 — 2026-07-07（可观测性 ✅ 已完成）
+
+**当前状态:** 可观测性全部完成，127 tests passed（non-DB），端点验证通过。
+
+### 可观测性 — 已全部完成
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-07-observability-design.md`
+- [x] 实施计划 → `docs/superpowers/plans/2026-07-07-observability.md`
+- [x] Task 1: 依赖添加（`pyproject.toml`）
+- [x] Task 2: AppSettings 新增 5 个配置字段
+- [x] Task 3-4: TraceMiddleware（纯 ASGI、UUID7）+ 结构化日志（JSON/text）+ 9 个测试
+- [x] Task 5: app_main.py 集成 — TraceMiddleware + 全局异常 handler + OTel 可选
+- [x] Task 6: LLM 调用日志关联 trace_id + 耗时追踪
+- [x] Task 7: .env.example 新增可观测性配置段
+- [x] Task 8: 127 tests passed + 服务启动验证（X-Trace-Id header ✅）
+
+### 新文件
+
+```
+app/observability/
+├── __init__.py          ← 导出 TraceMiddleware, get_trace_id, setup_logging
+├── middleware.py         ← 纯 ASGI 中间件（UUID7 + ContextVar）
+└── logging.py           ← TraceIdFilter + JsonFormatter + setup_logging
+
+tests/
+└── test_observability.py  ← 13 tests（8 单元 + 5 集成）
+```
+
+### 关键行为
+
+- 每个 HTTP 响应自动携带 `X-Trace-Id` header（UUID7 格式）
+- 日志格式 `%(asctime)s | %(levelname)s | %(trace_id)s | %(name)s | %(message)s`
+- `LOG_FORMAT=json` 切换到 JSON 格式日志
+- OTel FastAPI auto-instrumentation 由 `OTEL_ENABLED=true` 控制
+- Jaeger exporter 由 `OTEL_EXPORTER_JAEGER_ENABLED=true` 单独控制
+- 全局异常 handler 500 响应体包含 trace_id（开发模式包含 detail）
+- LLM 调用日志自动关联 trace_id + 耗时（ms）
 
 ## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 
