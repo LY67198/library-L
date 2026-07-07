@@ -48,3 +48,15 @@ async def get_required_user(
             detail={"error": "invalid_token", "message": "请先登录"},
         )
     return user
+
+
+async def require_admin(
+    user: User = Depends(get_required_user),
+) -> User:
+    """管理员权限依赖 — 非管理员返回 403"""
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"error": "forbidden", "message": "需要管理员权限"},
+        )
+    return user

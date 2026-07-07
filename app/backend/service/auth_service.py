@@ -53,8 +53,8 @@ class AuthService:
             raise ValueError("账号已被禁用")
 
         return {
-            "access_token": create_access_token(user.id),
-            "refresh_token": create_refresh_token(user.id),
+            "access_token": create_access_token(user),
+            "refresh_token": create_refresh_token(user),
             "token_type": "bearer",
         }
 
@@ -75,7 +75,7 @@ class AuthService:
         if user is None or not user.is_active:
             raise ValueError("invalid_token")
 
-        return create_access_token(user.id)
+        return create_access_token(user)
 
     async def get_user(self, user_id: str) -> User | None:
         result = await self._db.execute(select(User).where(User.id == user_id))
