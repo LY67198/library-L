@@ -6,10 +6,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from mcp_server.auth import (
+    McpAuthMiddleware,
     _pending_api_keys,
     bind_session_user,
     get_current_mcp_user,
-    mcp_auth_middleware,
 )
 from models import User
 
@@ -41,7 +41,7 @@ class TestMcpAuthMiddleware:
     def test_no_auth_header_does_not_crash(self):
         """无 Authorization header 时不报错，返回 None"""
         app = FastAPI()
-        app.middleware("http")(mcp_auth_middleware)
+        app.add_middleware(McpAuthMiddleware)
 
         @app.get("/test")
         async def test_endpoint(request: Request):

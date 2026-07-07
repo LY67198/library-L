@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from observability.middleware import TraceMiddleware, get_trace_id
-from observability.logging import setup_logging
+from .middleware import TraceMiddleware, get_trace_id
+from .logging import setup_logging
 
 __all__ = ["TraceMiddleware", "get_trace_id", "setup_logging"]

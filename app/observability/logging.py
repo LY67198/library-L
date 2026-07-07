@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 from datetime import datetime, timezone
 
-from observability.middleware import get_trace_id
+from .middleware import get_trace_id
 
 
 class TraceIdFilter(logging.Filter):
@@ -21,10 +22,8 @@ class JsonFormatter(logging.Formatter):
     """JSON 格式日志输出"""
 
     def format(self, record: logging.LogRecord) -> str:
-        import json
-
         log_entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "trace_id": getattr(record, "trace_id", "-"),
@@ -65,7 +64,7 @@ def setup_logging(log_format: str = "text") -> logging.Logger:
     root.addHandler(handler)
     root.setLevel(logging.INFO)
 
-    # 降低噪音
+    # 降低第三方库日志噪音（httpx/chromadb 在 INFO 级别输出过于频繁）
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("chromadb").setLevel(logging.WARNING)
 

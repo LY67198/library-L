@@ -10,10 +10,6 @@ _trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "trace_id", default=None
 )
 
-# UUID7 生成所需常量
-_UUID7_EPOCH_NS = 0x01B21DD213814000  # 2020-01-01 00:00:00 in 100ns ticks
-
-
 def _uuid7() -> str:
     """生成 UUID7（时间排序的 UUID）
 

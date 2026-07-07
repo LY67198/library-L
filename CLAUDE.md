@@ -199,7 +199,8 @@ front/src/
 
 **Phase 3 后续:**
 1. ✅ 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）— 2026-07-07 完成
-2. 🔜 读者画像 + MCP Server + 可观测性
+2. ✅ MCP Server — 2026-07-07 完成（含中间件引用修复）
+3. 🔜 读者画像 + 可观测性
 
 **Phase 3 实施计划:** `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
 
@@ -239,11 +240,11 @@ tests/
 └── test_real_llm_client.py  ← 27 tests（mock-based）
 ```
 
-## 断点续接 — 2026-07-07（MCP Server 🔧 待修复）
+## 断点续接 — 2026-07-07（MCP Server ✅ 已完成）
 
-**当前状态:** MCP Server 核心代码已完成，14 tests passed，端点验证通过（GET /sse → SSE 握手成功，POST /messages → 202 Accepted）。存在 1 个已知问题待修复。
+**当前状态:** MCP Server 全部完成，14 tests passed，中间件引用已修复。
 
-### MCP Server — 已完成部分
+### MCP Server — 已全部完成
 
 - [x] 设计文档 → `docs/superpowers/specs/2026-07-07-mcp-server-design.md`
 - [x] 实施计划 → `docs/superpowers/plans/2026-07-07-mcp-server.md`
@@ -256,6 +257,7 @@ tests/
 - [x] Task 7-9: 测试（14 tests — auth, tools, integration）
 - [x] 前端构建通过
 - [x] 端点验证：GET /sse → 200（SSE 握手成功），POST /messages → 202 Accepted
+- [x] **修复 (2026-07-07)**: `app_main.py` 和 `test_mcp_auth.py` 中间件引用从函数式 `mcp_auth_middleware` 更新为纯 ASGI 类 `McpAuthMiddleware`
 
 ### 新文件
 
@@ -272,42 +274,15 @@ tests/
 └── test_mcp_integration.py ← 4 tests
 ```
 
-### 已知问题 & 待修复
+### MCP 协议说明
 
-**1. app_main.py 需同步更新中间件引用**
-
-`auth.py` 已从函数式中间件改写为纯 ASGI 类 `McpAuthMiddleware`（避免 `BaseHTTPMiddleware` 劫持 SSE 流）。但 `app_main.py:44` 仍引用旧版：
-```python
-# 当前（旧版，有 SSE 兼容问题）
-app.middleware("http")(mcp_auth_middleware)
-```
-需改为：
-```python
-# 新版（纯 ASGI，兼容 SSE）
-app.add_middleware(McpAuthMiddleware)
-```
-
-导入也需更新：`from mcp_server.auth import McpAuthMiddleware`
-
-**2. tools/list 需要先 initialize 握手**
-
-MCP 协议要求客户端先发送 `initialize` 请求，服务器返回 `server_info` 后才能调用 `tools/list`。直接用 curl 测试需两步：
+tools/list 需先完成 MCP initialize 握手（协议要求）：
 ```bash
-# 第一步：建立 SSE 连接获取 session_id
-curl -sN http://localhost:8000/api/v1/mcp/sse > /tmp/sse &
-# 第二步：发送 initialize
-curl -X POST "http://localhost:8000/api/v1/mcp/messages/?session_id=SID" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
-# 第三步：发送 initialized 通知
-curl -X POST "..." -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
-# 第四步：现在可以调用 tools/list
-curl -X POST "..." -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+# 1. SSE 连接 → 获取 session_id
+# 2. POST /messages → initialize 请求
+# 3. POST /messages → notifications/initialized
+# 4. 现在可以调用 tools/list
 ```
-
-**3. 测试文件需跟随 auth 模块 API 更新**
-
-`tests/test_mcp_auth.py` 导入了 `mcp_auth_middleware`（函数），需更新为 `McpAuthMiddleware`（类）。
 
 ## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 

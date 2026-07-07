@@ -140,3 +140,14 @@ class TestSetupLogging:
             for f in h.filters
         )
         assert handler_has_filter
+
+    def test_double_initialization_does_not_accumulate_handlers(self):
+        """两次调用 setup_logging 不会导致 handler 累积"""
+        from observability.logging import setup_logging, JsonFormatter
+
+        setup_logging(log_format="text")
+        setup_logging(log_format="json")
+        root = logging.getLogger()
+        stream_handlers = [h for h in root.handlers if isinstance(h, logging.StreamHandler)]
+        assert len(stream_handlers) == 1
+        assert isinstance(stream_handlers[0].formatter, JsonFormatter)
