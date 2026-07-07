@@ -515,3 +515,22 @@ Authorization: Bearer <token>
 ### 项目完成度总览
 
 **全部 Phase 完成。9/9 意图 + 3/3 子图 + 全部基础设施 + REST API 全覆盖。**
+
+## 2026-07-07 修复 — 前端强制认证 + 意图分类优化
+
+### 前端强制认证
+
+- [x] `front/src/api/auth.ts` — 新增 `register()` API 函数
+- [x] `front/src/composables/useAuth.ts` — 新增 `register()`（注册后自动登录）
+- [x] `front/src/router/index.ts` — 新增 `beforeEach` 全局导航守卫，未登录跳转 `/login`
+- [x] `front/src/views/LoginView.vue` — 新增注册 Tab（用户名/密码/显示名/学号）
+
+行为：打开任意页面 → 未登录自动跳转 `/login?redirect=<原路径>`，登录/注册后跳回。
+
+### 纯问候语意图分类修复
+
+- [x] `app/agents/nodes.py` — `intent_classifier_node` 新增 `_is_pure_greeting()` 快速预检
+- [x] `app/agents/nodes.py` — `_fallback_classify` 补全遗漏的 5 种意图（greeting/cancel_appointment/query_appointment/profile_query/recommend_book）
+
+修复前："你好"可能被 LLM 分类为 `other` → "抱歉，我没有理解您的问题"
+修复后："你好/hi/早上好"等纯问候语直接识别为 `greeting` → "您好！我是图书馆智能助手..."
