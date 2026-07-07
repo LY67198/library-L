@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import time as _time
 from typing import Any, Callable, TypeVar
 
 from agents.llm import RuleBasedLLMClient
+from observability.middleware import get_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,7 @@ def _call_with_fallback(
     """MiniMax → DeepSeek → raise RuntimeError"""
     for client, model in [(primary, primary_model), (secondary, secondary_model)]:
         try:
+            start = _time.monotonic()
             resp = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -85,10 +88,19 @@ def _call_with_fallback(
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+            latency_ms = int((_time.monotonic() - start) * 1000)
             raw = resp.choices[0].message.content
-            return parser(raw)
+            result = parser(raw)
+            logger.info(
+                "LLM call completed: model=%s, latency_ms=%d, trace_id=%s",
+                model, latency_ms, get_trace_id() or "-",
+            )
+            return result
         except Exception as exc:
-            logger.warning(f"LLM call failed ({model}): {exc}")
+            logger.warning(
+                "LLM call failed: model=%s, error=%s, trace_id=%s",
+                model, exc, get_trace_id() or "-",
+            )
 
     raise RuntimeError("All LLM backends failed")
 
