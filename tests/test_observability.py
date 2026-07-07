@@ -151,3 +151,35 @@ class TestSetupLogging:
         stream_handlers = [h for h in root.handlers if isinstance(h, logging.StreamHandler)]
         assert len(stream_handlers) == 1
         assert isinstance(stream_handlers[0].formatter, JsonFormatter)
+
+
+class TestAppIntegration:
+    """app_main 集成 — 请求级 X-Trace-Id 验证"""
+
+    def test_every_response_has_trace_id(self):
+        from app.app_main import app
+
+        client = TestClient(app)
+        resp = client.get("/api/v1/health")
+        assert resp.status_code == 200
+        assert "X-Trace-Id" in resp.headers
+
+    def test_error_response_has_trace_id(self):
+        from app.app_main import app
+
+        client = TestClient(app)
+        resp = client.get("/api/v1/nonexistent")
+        assert "X-Trace-Id" in resp.headers
+
+    def test_cors_headers_coexist_with_trace_id(self):
+        from app.app_main import app
+
+        client = TestClient(app)
+        resp = client.options(
+            "/api/v1/health",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert "X-Trace-Id" in resp.headers
