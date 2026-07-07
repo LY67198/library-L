@@ -32,7 +32,7 @@ class ProfileService:
         appointments = []
         borrow_records = []
 
-        if profile_type in ("personal_info", "all"):
+        if profile_type in ("all",):
             # 查询当前有效预约
             if user:
                 appt_result = await self._db.execute(
