@@ -23,6 +23,7 @@ class AppSettings(BaseSettings):
     refresh_token_expire_days: int = 7
     redis_url: str = "redis://localhost:6379/0"
     dashscope_api_key: str = ""
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     embedding_model: str = "text-embedding-v2"
 
     model_config = SettingsConfigDict(

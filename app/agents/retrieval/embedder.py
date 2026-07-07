@@ -9,9 +9,6 @@ from backend.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-# DashScope 兼容 OpenAI 接口格式
-DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-
 
 class QwenEmbedder:
     """Qwen text-embedding-v2 嵌入客户端
@@ -21,8 +18,9 @@ class QwenEmbedder:
 
     def __init__(self, api_key: str = "", model: str = ""):
         settings = get_settings()
-        self._api_key = api_key or getattr(settings, "dashscope_api_key", "") or ""
-        self._model = model or getattr(settings, "embedding_model", "text-embedding-v2")
+        self._api_key = api_key or settings.dashscope_api_key
+        self._model = model or settings.embedding_model
+        self._base_url = settings.dashscope_base_url
         self._client: Any = None
 
     def _ensure_client(self):
@@ -34,7 +32,7 @@ class QwenEmbedder:
             from openai import OpenAI
         except ImportError:
             raise RuntimeError("openai SDK 未安装，请执行: uv add openai")
-        self._client = OpenAI(api_key=self._api_key, base_url=DASHSCOPE_BASE_URL)
+        self._client = OpenAI(api_key=self._api_key, base_url=self._base_url)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """批量嵌入，返回 1024d 向量列表"""
