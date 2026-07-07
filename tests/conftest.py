@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 APP_DIR = Path(__file__).resolve().parent.parent / "app"
@@ -14,12 +15,20 @@ if str(APP_DIR) not in sys.path:
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
+def _enable_sqlite_fks(dbapi_connection, _connection_record):
+    """启用 SQLite 外键约束"""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
     """每个测试独立的 SQLite 内存数据库"""
     from models import Base
 
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    event.listen(engine.sync_engine, "connect", _enable_sqlite_fks)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
