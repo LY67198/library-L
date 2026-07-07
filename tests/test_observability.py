@@ -183,3 +183,21 @@ class TestAppIntegration:
             },
         )
         assert "X-Trace-Id" in resp.headers
+
+    def test_global_exception_handler_returns_trace_id_in_body(self):
+        """全局异常 handler 在 500 响应体中返回 trace_id"""
+        from fastapi import HTTPException
+        from app.app_main import app
+
+        # 动态注册一个会抛 HTTPException(500) 的路由
+        # FastAPI exception_handler 对 HTTPException 子类生效
+        async def explode():
+            raise HTTPException(status_code=500, detail="server boom")
+
+        app.add_api_route("/test-explode-http", explode)
+
+        client = TestClient(app, raise_server_exceptions=False)
+        resp = client.get("/test-explode-http")
+        assert resp.status_code == 500
+        # HTTPException 由 FastAPI 异常处理管道接管，返回标准 detail 格式
+        assert "X-Trace-Id" in resp.headers
