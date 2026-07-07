@@ -488,15 +488,30 @@ migrations/versions/22c744cbc6c6_add_borrow_records_table.py
 
 **9/9 意图全部完成，3/3 子图全部实现，基础设施全部就绪。**
 
-## 下一步 — Phase 4.1: GET /api/v1/profile REST 端点 🔜
+## Phase 4.1 ✅ — GET /api/v1/profile REST 端点 (2026-07-07)
 
 **设计文档:** `docs/superpowers/specs/2026-07-07-profile-api-design.md`
+**实施计划:** `docs/superpowers/plans/2026-07-07-profile-api.md`
 
-将 ProfileService 现有能力暴露为 HTTP JSON API。复用已有服务层，仅新增 Schema + Router + 测试。
+将 ProfileService 现有能力暴露为 HTTP JSON API。4 个集成测试通过。
+
+### API
+
+```
+GET /api/v1/profile?type=all|personal_info|borrowing_history
+Authorization: Bearer <token>
+```
+
+### 文件变更
 
 | 操作 | 文件 |
 |------|------|
 | 新建 | `app/backend/schemas/profile.py` — UserInfo, BorrowRecordItem, ProfileResponse |
 | 新建 | `app/backend/router/profile_router.py` — `GET /api/v1/profile?type=all` |
+| 修改 | `app/backend/service/profile_service.py` — 修复 personal_info bug + 3 级 selectinload |
 | 修改 | `app/app_main.py` — 注册 profile_router |
-| 新建 | `tests/test_profile_api.py` — 4 tests |
+| 新建 | `tests/test_profile_api.py` — 4 tests passed |
+
+### 项目完成度总览
+
+**全部 Phase 完成。9/9 意图 + 3/3 子图 + 全部基础设施 + REST API 全覆盖。**
