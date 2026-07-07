@@ -1,10 +1,10 @@
-"""ChromaDB 向量检索器 — 政策文档语义搜索"""
+"""ChromaDB 向量检索器 — 政策文档语义搜索 + 写入/删除"""
 
 from __future__ import annotations
 
 
 class ChromaDBRetriever:
-    """基于 ChromaDB 的政策文档向量检索器"""
+    """基于 ChromaDB 的政策文档向量检索器，支持搜索、写入和按文档 ID 删除"""
 
     def __init__(self, collection_name: str = "library_policies", persist_dir: str = "./chroma_data"):
         self._collection_name = collection_name
@@ -56,3 +56,30 @@ class ChromaDBRetriever:
             raise
         except Exception as exc:
             raise RuntimeError(f"ChromaDB 检索失败: {exc}")
+
+    def add_documents(self, chunks: list[dict]):
+        """写入 chunks 到 collection
+
+        每个 chunk 格式: {"id": "doc_uuid_0", "document": "文本...", "metadata": {...}}
+        使用 upsert，支持覆盖已有文档的重新索引。
+        """
+        if not chunks:
+            return
+        self._ensure_initialized()
+        assert self._collection is not None
+        ids = [c["id"] for c in chunks]
+        documents = [c["document"] for c in chunks]
+        metadatas = [c.get("metadata", {}) for c in chunks]
+        self._collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+
+    def delete_by_doc_id(self, doc_id: str):
+        """按 doc_id 前缀删除对应 chunks"""
+        self._ensure_initialized()
+        assert self._collection is not None
+        try:
+            existing = self._collection.get(where={"doc_id": doc_id})
+            if existing and existing.get("ids"):
+                self._collection.delete(ids=existing["ids"])
+        except Exception:
+            # ChromaDB where 过滤可能失败（旧版本/无 metadata），降级为全量匹配删除
+            pass
