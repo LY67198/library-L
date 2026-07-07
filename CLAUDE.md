@@ -450,6 +450,7 @@ alembic upgrade head && python scripts/seed.py
 - 真实 LLMClient 计划: `docs/superpowers/plans/2026-07-07-real-llm-client.md`
 - Phase 4 profile_query 设计: `docs/superpowers/specs/2026-07-07-profile-query-design.md`
 - Phase 4 profile_query 计划: `docs/superpowers/plans/2026-07-07-profile-query.md`
+- Phase 4.1 profile API 设计: `docs/superpowers/specs/2026-07-07-profile-api-design.md`
 
 ## 断点续接 — 2026-07-07（profile_query Phase 4 ✅ 已完成）
 
@@ -486,3 +487,16 @@ migrations/versions/22c744cbc6c6_add_borrow_records_table.py
 ### 项目完成度总览
 
 **9/9 意图全部完成，3/3 子图全部实现，基础设施全部就绪。**
+
+## 下一步 — Phase 4.1: GET /api/v1/profile REST 端点 🔜
+
+**设计文档:** `docs/superpowers/specs/2026-07-07-profile-api-design.md`
+
+将 ProfileService 现有能力暴露为 HTTP JSON API。复用已有服务层，仅新增 Schema + Router + 测试。
+
+| 操作 | 文件 |
+|------|------|
+| 新建 | `app/backend/schemas/profile.py` — UserInfo, BorrowRecordItem, ProfileResponse |
+| 新建 | `app/backend/router/profile_router.py` — `GET /api/v1/profile?type=all` |
+| 修改 | `app/app_main.py` — 注册 profile_router |
+| 新建 | `tests/test_profile_api.py` — 4 tests |
