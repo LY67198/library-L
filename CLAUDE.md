@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端，Phase 2c 实现 Celery 超时释放。
+基于 `deep_research_scaffold`（FastAPI + LangGraph 脚手架）的图书馆智能服务系统。Phase 1 聚焦 AI 智能问答 + 馆藏检索，Phase 2a 实现用户认证 + 座位预约闭环，Phase 2b 实现座位可视化前端，Phase 2c 实现 Celery 超时释放，Phase 3 已实现知识库管理（图书 + 政策文档）。
 
 ## 仓库
 
@@ -179,10 +179,29 @@ front/src/
 
 ## 下一步
 
-**后续 Phase:**
-1. 实现真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
-2. 初始化 ChromaDB 知识库 + PostgreSQL 图书数据
-3. Phase 3：读者画像 + 知识库管理 + MCP Server + 可观测性
+**Phase 3 ✅ — 知识库管理 — 已完成:**
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-06-library-phase3-kb-design.md`
+- [x] 实施计划 → `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
+- [x] Task 1: DB Migration（books + documents 表 + users.is_admin 列）
+- [x] Task 2: Book + Document 模型 + User.is_admin
+- [x] Task 3: QwenEmbedder（DashScope text-embedding-v2）
+- [x] Task 4: ChromaDBRetriever 补全写入/删除
+- [x] Task 5: Auth 改造（JWT is_admin claim + require_admin）
+- [x] Task 6-7: Book + Document Pydantic Schemas
+- [x] Task 8-9: BookService + DocService
+- [x] Task 10-11: Admin Book + Doc Routers
+- [x] Task 12: 公开 book_router 改造为真实 DB 查询
+- [x] Task 13: app_main.py 注册新路由
+- [x] Task 14: 种子数据（admin 用户 + 20 本示例图书）
+- [x] Task 15-20: 测试（41 new tests — model, service, API, embedder, chroma）
+- [x] 96 tests passed（非 DB）+ 前端构建通过
+
+**Phase 3 后续:**
+1. 🔜 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）
+2. 🔜 读者画像 + MCP Server + 可观测性
+
+**Phase 3 实施计划:** `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
 
 ## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 
@@ -270,3 +289,5 @@ alembic upgrade head && python scripts/seed.py
 - Phase 2b 计划: `docs/superpowers/plans/2026-07-06-library-phase2b.md`
 - Phase 2c 设计: `docs/superpowers/specs/2026-07-06-library-phase2c-design.md`
 - Phase 2c 计划: `docs/superpowers/plans/2026-07-06-library-phase2c.md`
+- Phase 3 KB 设计: `docs/superpowers/specs/2026-07-06-library-phase3-kb-design.md`
+- Phase 3 KB 计划: `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`

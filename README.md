@@ -6,6 +6,7 @@
 > **Phase 2a 已完成** — 用户认证 + 座位预约闭环，56 tests passed。
 > **Phase 2b 已完成** — 座位可视化前端 + 匿名浏览，57 tests passed。
 > **Phase 2c 已完成** — Celery 超时释放，67 tests passed。
+> **Phase 3 已完成** — 知识库管理（图书 + 政策文档）+ 管理员权限，96 tests passed。
 
 ## 功能特性
 
@@ -15,7 +16,7 @@
 - **预约管理** — 预约/取消/历史查询 ✅ Phase 2a（REST API）
 - **超时释放** — Celery Beat 每 5 分钟轮询，自动释放逾期座位 ✅ Phase 2c
 - **读者画像** — 预约统计、行为标签、个性化推荐 🔜 Phase 3
-- **知识库管理** — 图书/政策文档的增删改查（管理员） 🔜 Phase 3
+- **知识库管理** — 图书/政策文档的增删改查（管理员），ChromaDB 向量检索 ✅ Phase 3
 - **MCP Server** — 开放 5 个 Tool，支持外部 AI 客户端接入 🔜 Phase 3
 - **全链路追踪** — OpenTelemetry + Jaeger 集成 🔜 Phase 3
 
@@ -133,6 +134,14 @@ uv run pytest tests/ -v
 | POST | `/api/v1/seats/{id}/bookings` | 预约座位 | ✅ Phase 2a |
 | GET | `/api/v1/appointments` | 我的预约 | ✅ Phase 2a |
 | DELETE | `/api/v1/appointments/{id}` | 取消预约 | ✅ Phase 2a |
+| GET | `/api/v1/admin/books` | 图书管理列表 | ✅ Phase 3 |
+| POST | `/api/v1/admin/books` | 新增图书 | ✅ Phase 3 |
+| PUT | `/api/v1/admin/books/{id}` | 更新图书 | ✅ Phase 3 |
+| DELETE | `/api/v1/admin/books/{id}` | 删除图书 | ✅ Phase 3 |
+| POST | `/api/v1/admin/books/import` | 批量导入图书 | ✅ Phase 3 |
+| GET | `/api/v1/admin/documents` | 文档列表 | ✅ Phase 3 |
+| POST | `/api/v1/admin/documents` | 上传 Markdown 文档 | ✅ Phase 3 |
+| DELETE | `/api/v1/admin/documents/{id}` | 删除文档 | ✅ Phase 3 |
 | GET | `/api/v1/profile` | 读者画像 | 🔜 Phase 3 |
 
 ## AI 智能问答
