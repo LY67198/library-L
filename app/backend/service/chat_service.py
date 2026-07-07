@@ -7,11 +7,39 @@ from threading import Lock, Thread
 from typing import AsyncIterator
 
 from agents.llm import RuleBasedLLMClient
+from agents.llm_client import RealLLMClient
+from backend.config.settings import get_settings
+from openai import OpenAI
 from agents.config import ChatConfig
 from agents.graph import build_library_graph
 from agents.nodes import LibraryNodeContext
 from agents.retrieval.protocol import StubRetriever
 from agents.state import create_initial_library_state
+
+
+def _create_llm_client():
+    """工厂：API Key 存在时创建 RealLLMClient，否则回退 RuleBasedLLMClient"""
+    settings = get_settings()
+    if settings.minimax_api_key and settings.deepseek_api_key:
+        try:
+            primary = OpenAI(
+                api_key=settings.minimax_api_key,
+                base_url=settings.minimax_base_url,
+            )
+            secondary = OpenAI(
+                api_key=settings.deepseek_api_key,
+                base_url=settings.deepseek_base_url,
+            )
+            return RealLLMClient(
+                primary_client=primary,
+                primary_model=settings.minimax_model,
+                secondary_client=secondary,
+                secondary_model=settings.deepseek_model,
+                fallback=RuleBasedLLMClient(),
+            )
+        except Exception:
+            pass  # 配置有问题，回退规则引擎
+    return RuleBasedLLMClient()
 
 
 class ChatService:
@@ -31,7 +59,7 @@ class ChatService:
                 return
             context = LibraryNodeContext(
                 config=self._config,
-                llm=RuleBasedLLMClient(),
+                llm=_create_llm_client(),
                 retriever=StubRetriever(),
                 book_lookup=StubRetriever(),
             )
