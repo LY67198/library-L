@@ -29,7 +29,7 @@ class Appointment(Base):
     seat_id: Mapped[str] = mapped_column(String(36), ForeignKey("seats.id"), nullable=False)
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     slot: Mapped[TimeSlot] = mapped_column(
-        Enum(TimeSlot, name="appointment_slot_enum"), nullable=False
+        Enum(TimeSlot, name="time_slot_enum"), nullable=False
     )
     status: Mapped[AppointmentStatus] = mapped_column(
         Enum(AppointmentStatus, name="appointment_status_enum"),
