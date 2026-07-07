@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { login as apiLogin, fetchMe, type UserProfile } from '@/api/auth'
+import { login as apiLogin, register as apiRegister, fetchMe, type UserProfile } from '@/api/auth'
 
 const user = ref<UserProfile | null>(null)
 const loading = ref(false)
@@ -32,11 +32,25 @@ export function useAuth() {
     }
   }
 
+  async function register(username: string, password: string, display_name: string, student_id: string): Promise<void> {
+    loading.value = true
+    try {
+      await apiRegister(username, password, display_name, student_id)
+      // 注册成功后自动登录
+      const resp = await apiLogin(username, password)
+      localStorage.setItem('access_token', resp.access_token)
+      localStorage.setItem('refresh_token', resp.refresh_token)
+      user.value = await fetchMe()
+    } finally {
+      loading.value = false
+    }
+  }
+
   function logout() {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     user.value = null
   }
 
-  return { user, isLoggedIn, loading, checkAuth, login, logout }
+  return { user, isLoggedIn, loading, checkAuth, login, register, logout }
 }

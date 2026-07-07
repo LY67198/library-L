@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +20,20 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
     },
   ],
+})
+
+router.beforeEach(async (to, _from, next) => {
+  const { checkAuth } = useAuth()
+
+  if (to.path === '/login') {
+    const loggedIn = await checkAuth()
+    if (loggedIn) return next('/')
+    return next()
+  }
+
+  const loggedIn = await checkAuth()
+  if (!loggedIn) return next(`/login?redirect=${to.path}`)
+  next()
 })
 
 export default router
