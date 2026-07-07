@@ -214,17 +214,17 @@ front/src/
 | `book_seat` | ✅ Phase 2a |
 | `query_appointment` | ✅ Phase 2a |
 | `cancel_appointment` | ✅ Phase 2a |
-| `profile_query` | 🔜 **最后一个待实现**（当前 stub） |
+| `profile_query` | 🔄 Phase 4 开发中（Tasks 1-7/12 已完成） |
 | `greeting` | ✅ Phase 1 |
 | `other` | ✅ Phase 1 |
 
-**子图：2/3 已实现**
+**子图：3/3 结构已完成（待收尾集成）**
 
 | 子图 | 状态 |
 |------|------|
 | `retrieval_subgraph` | ✅ Phase 1 |
 | `reservation_subgraph` | ✅ Phase 2a |
-| `profile_subgraph` | 🔜 stub → 待升级 |
+| `profile_subgraph` | 🔄 Phase 4 开发中 |
 
 **基础设施：全部完成**
 
@@ -448,3 +448,44 @@ alembic upgrade head && python scripts/seed.py
 - Phase 3 KB 计划: `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
 - 真实 LLMClient 设计: `docs/superpowers/specs/2026-07-07-real-llm-client-design.md`
 - 真实 LLMClient 计划: `docs/superpowers/plans/2026-07-07-real-llm-client.md`
+- Phase 4 profile_query 设计: `docs/superpowers/specs/2026-07-07-profile-query-design.md`
+- Phase 4 profile_query 计划: `docs/superpowers/plans/2026-07-07-profile-query.md`
+
+## 断点续接 — 2026-07-07（profile_query Phase 4 🔄 开发中）
+
+**当前状态:** Tasks 1-7/12 已完成，剩余 Tasks 8-12 待执行。42 tests 通过（non-DB）。
+
+### 已完成的 Tasks（1-7）
+
+- [x] Task 1: `app/models/borrow_record.py` — BorrowRecord + BorrowStatus 模型
+- [x] Task 2: Alembic 迁移 — `migrations/versions/22c744cbc6c6_add_borrow_records_table.py`
+- [x] Task 3: `tests/test_borrow_model.py` — 4 tests
+- [x] Task 4: `app/backend/service/profile_service.py` — ProfileService
+- [x] Task 5: `tests/test_profile_service.py` — 5 tests
+- [x] Task 6: LLM 层 — `extract_profile_params` + `format_profile_response`（RealLLMClient + RuleBasedLLMClient）
+- [x] Task 7: `app/agents/nodes.py` + `app/agents/graph.py` — profile_subgraph 三节点 + 主图升级
+
+### 待执行的 Tasks（8-12）
+
+- [ ] **Task 8: ChatService 注入 session_factory** → `app/backend/service/chat_service.py`
+  - 添加 `set_session_factory()` 方法
+  - `_ensure_initialized()` context 传入 `session_factory=self._session_factory`
+  - `get_chat_service()` 创建 engine + session_factory 并注入
+- [ ] **Task 9: profile_subgraph 集成测试** → `tests/test_profile_graph.py`（5 tests, mock asyncio.run）
+- [ ] **Task 10: 种子数据** → `scripts/seed.py`（新增 3 条借阅记录）
+- [ ] **Task 11: 全量测试回归** → `pytest tests/ -v` 预期 ~152 tests + `npm run build`
+- [ ] **Task 12: 更新 CLAUDE.md** → 标记 Phase 4 完成，更新 9/9 意图 + 3/3 子图
+
+### 实施计划完整文档
+
+`docs/superpowers/plans/2026-07-07-profile-query.md`
+
+### 新增文件清单
+
+```
+app/models/borrow_record.py
+app/backend/service/profile_service.py
+tests/test_borrow_model.py
+tests/test_profile_service.py
+migrations/versions/22c744cbc6c6_add_borrow_records_table.py
+```
