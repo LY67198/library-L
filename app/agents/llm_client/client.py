@@ -244,7 +244,7 @@ class RealLLMClient:
 # ─── 内部辅助 ───
 
 def _parse_json_or_empty(raw: str) -> dict:
-    """将 LLM 输出解析为 dict，失败返回空 dict"""
+    """将 LLM 输出解析为 dict，解析失败向上抛异常以触发 fallback 链路"""
     raw = raw.strip()
     # 处理 ```json ... ``` 包裹的情况
     if raw.startswith("```"):
@@ -254,4 +254,4 @@ def _parse_json_or_empty(raw: str) -> dict:
         return json.loads(raw)
     except json.JSONDecodeError:
         logger.warning(f"Failed to parse JSON from LLM output: {raw[:200]}")
-        return {}
+        raise  # 重新抛出，让 _call_with_fallback 切换到下一个 LLM

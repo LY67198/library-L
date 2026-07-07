@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from agents.llm import RuleBasedLLMClient
 from agents.llm_client import RealLLMClient
-from agents.llm_client.client import _call_with_fallback
+from agents.llm_client.client import _call_with_fallback, _parse_json_or_empty
 
 
 # ─── mock factory helpers ───
@@ -163,8 +163,8 @@ class TestExtractBookingParams:
             fallback=fallback,
         )
         result = client.extract_booking_params("今天上午2楼")
-        # fallback 返回的 dict
-        assert isinstance(result, dict)
+        # rule-based fallback 从文本中提取的参数
+        assert result == {"date": "today", "slot": "morning", "floor": 2}
 
 
 class TestExtractCancelParams:
@@ -356,3 +356,30 @@ class TestDelegatedMethods:
         )
         result = client.stub_message("profile_query")
         assert "开发中" in result
+
+
+# ─── _parse_json_or_empty ───
+
+
+class TestParseJsonOrEmpty:
+    """JSON 解析辅助函数"""
+
+    def test_valid_json(self):
+        result = _parse_json_or_empty('{"key": "value"}')
+        assert result == {"key": "value"}
+
+    def test_json_in_fences(self):
+        result = _parse_json_or_empty('```json\n{"key": "value"}\n```')
+        assert result == {"key": "value"}
+
+    def test_json_in_plain_fences(self):
+        result = _parse_json_or_empty('```\n{"key": "value"}\n```')
+        assert result == {"key": "value"}
+
+    def test_invalid_json_raises(self):
+        with pytest.raises(json.JSONDecodeError):
+            _parse_json_or_empty("not json at all")
+
+    def test_empty_string_raises(self):
+        with pytest.raises(json.JSONDecodeError):
+            _parse_json_or_empty("")
