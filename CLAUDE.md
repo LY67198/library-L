@@ -239,6 +239,38 @@ tests/
 └── test_real_llm_client.py  ← 27 tests（mock-based）
 ```
 
+## 断点续接 — 2026-07-07（MCP Server ✅ 已完成）
+
+**当前状态:** MCP Server 已完成，5 个 Tool 通过 SSE + HTTP 暴露给外部 AI 客户端，14 tests passed。
+
+### MCP Server — 已全部完成
+
+- [x] 设计文档 → `docs/superpowers/specs/2026-07-07-mcp-server-design.md`
+- [x] 实施计划 → `docs/superpowers/plans/2026-07-07-mcp-server.md`
+- [x] Task 1: mcp SDK 依赖（`pyproject.toml`）
+- [x] Task 2: User.api_key 字段 + Alembic 迁移
+- [x] Task 3: MCP auth 模块（ContextVar + API Key 中间件）
+- [x] Task 4: 5 个 Tool 实现（search_books, list_seats, book_seat, list_appointments, cancel_appointment）
+- [x] Task 5: FastMCP Server + SSE transport
+- [x] Task 6: FastAPI 挂载（`/api/v1/mcp`）
+- [x] Task 7-9: 测试（14 tests — auth, tools, integration）
+- [x] 前端构建通过
+
+### 新文件
+
+```
+app/mcp_server/
+├── __init__.py          ← 包初始化
+├── auth.py              ← API Key 认证（ContextVar + 中间件）
+├── tools.py             ← 5 个 Tool 实现
+└── server.py            ← FastMCP 实例 + SSE 挂载
+
+tests/
+├── test_mcp_auth.py     ← 3 tests
+├── test_mcp_tools.py    ← 7 tests
+└── test_mcp_integration.py ← 4 tests
+```
+
 ## 断点续接 — 2026-07-06（RESTful 重构 ✅ 已完成）
 
 **当前状态:** Phase 2c Celery 超时释放已完成。RESTful 规范化重构已完成，67 tests passed + 前端构建通过。
