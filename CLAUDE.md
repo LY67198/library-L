@@ -534,3 +534,20 @@ Authorization: Bearer <token>
 
 修复前："你好"可能被 LLM 分类为 `other` → "抱歉，我没有理解您的问题"
 修复后："你好/hi/早上好"等纯问候语直接识别为 `greeting` → "您好！我是图书馆智能助手..."
+
+### LLM 返回 other 时规则引擎交叉验证
+
+- [x] `app/agents/llm_client/client.py` — `classify_library_intent` 新增 post-check：LLM 返回 `other` 时，用 `RuleBasedLLMClient` 交叉验证，规则引擎命中则覆盖 LLM 结果
+
+修复前："有没有《三体》""我想看三体"被 LLM 误分类为 `other` → "抱歉，我没有理解您的问题"
+修复后：LLM→other → 规则引擎交叉验证 → "有没有"命中 search_book ✅ → 正常检索
+
+完整意图分类链路：
+```
+用户输入
+  → nodes.py: _is_pure_greeting() 预检（纯问候语）
+  → RealLLMClient: MiniMax → DeepSeek
+  → post-check: LLM=other → RuleBasedLLMClient 交叉验证
+  → 异常: RuleBasedLLMClient 兜底
+  → nodes.py: _fallback_classify 终极兜底
+```
