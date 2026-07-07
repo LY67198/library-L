@@ -33,6 +33,13 @@ class LLMClient(Protocol):
 
     def format_reservation_response(self, intent: str, result: dict) -> str: ...
 
+    # --- 读者画像方法（Phase 4 新增） ---
+    def extract_profile_params(self, query: str) -> dict: ...
+
+    def format_profile_response(
+        self, user_info: dict, appointments: list[dict], borrow_records: list[dict]
+    ) -> str: ...
+
 
 class RuleBasedLLMClient:
     """Small deterministic adapter so the scaffold works without API keys."""
@@ -159,6 +166,53 @@ class RuleBasedLLMClient:
             if loc:
                 line += f" — {loc}"
             lines.append(line)
+        return "\n".join(lines)
+
+    def extract_profile_params(self, query: str) -> dict:
+        """关键词兜底：借阅/借了/还了/借过 → borrowing_history，其余 → all"""
+        lowered = query.lower()
+        if any(w in lowered for w in ["借阅", "借了", "还了", "借过", "借书记录",
+                                        "借了哪些", "借过什么", "在借"]):
+            return {"profile_type": "borrowing_history"}
+        return {"profile_type": "all"}
+
+    def format_profile_response(
+        self, user_info: dict, appointments: list[dict], borrow_records: list[dict]
+    ) -> str:
+        """固定模板拼接：个人信息 + 当前预约 + 借阅记录"""
+        lines = []
+        u = user_info or {}
+        lines.append(f"**个人信息**\n- 姓名：{u.get('display_name', '-')}\n- 学号：{u.get('student_id', '-')}")
+
+        lines.append("\n**当前预约**")
+        if appointments:
+            for a in appointments:
+                slot_label = (
+                    "上午" if a.get("slot") == "morning"
+                    else "下午" if a.get("slot") == "afternoon"
+                    else "晚上"
+                )
+                lines.append(
+                    f"- {a.get('floor_name', '')}-{a.get('zone_name', '')}-"
+                    f"{a.get('seat_number', '')} | {a.get('date', '')} {slot_label}"
+                )
+        else:
+            lines.append("- 暂无有效预约")
+
+        lines.append("\n**借阅记录**")
+        if borrow_records:
+            for br in borrow_records:
+                status_map = {"borrowed": "在借", "returned": "已还", "overdue": "逾期"}
+                status = status_map.get(br.get("status", ""), br.get("status", ""))
+                lines.append(
+                    f"- 《{br.get('book_title', '-')}》 "
+                    f"借阅：{br.get('borrowed_at', '-')[:10]} "
+                    f"到期：{br.get('due_at', '-')[:10]} "
+                    f"状态：{status}"
+                )
+        else:
+            lines.append("- 暂无借阅记录")
+
         return "\n".join(lines)
 
     def stub_message(self, intent: str) -> str:
