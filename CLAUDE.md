@@ -201,7 +201,42 @@ front/src/
 1. ✅ 真实 LLMClient（对话用 MiniMax/DeepSeek，嵌入/重排序用 Qwen）— 2026-07-07 完成
 2. ✅ MCP Server — 2026-07-07 完成（含中间件引用修复）
 3. ✅ 可观测性 — 2026-07-07 完成（TraceMiddleware + 结构化日志 + OTel）
-4. 🔜 读者画像
+
+### 项目完成度总览
+
+**9 种用户意图：8/9 已实现**
+
+| Intent | 状态 |
+|--------|------|
+| `search_book` | ✅ Phase 1 |
+| `recommend_book` | ✅ Phase 1 |
+| `policy_query` | ✅ Phase 1 |
+| `book_seat` | ✅ Phase 2a |
+| `query_appointment` | ✅ Phase 2a |
+| `cancel_appointment` | ✅ Phase 2a |
+| `profile_query` | 🔜 **最后一个待实现**（当前 stub） |
+| `greeting` | ✅ Phase 1 |
+| `other` | ✅ Phase 1 |
+
+**子图：2/3 已实现**
+
+| 子图 | 状态 |
+|------|------|
+| `retrieval_subgraph` | ✅ Phase 1 |
+| `reservation_subgraph` | ✅ Phase 2a |
+| `profile_subgraph` | 🔜 stub → 待升级 |
+
+**基础设施：全部完成**
+
+- ✅ 用户认证（JWT + bcrypt）
+- ✅ 数据库（PostgreSQL + SQLAlchemy async + Alembic）
+- ✅ Redis 分布式锁 + Celery 超时释放
+- ✅ 知识库管理（图书/文档 CRUD + ChromaDB）
+- ✅ 真实 LLM（MiniMax + DeepSeek 双通道兜底）
+- ✅ 前端（Vue 3 + Element Plus 座位可视化 + 对话界面）
+- ✅ MCP Server（5 个 Tool + SSE transport）
+- ✅ 可观测性（Trace ID + 结构化日志 + OpenTelemetry）
+- ✅ Docker Compose 部署
 
 **Phase 3 实施计划:** `docs/superpowers/plans/2026-07-06-library-phase3-kb.md`
 
