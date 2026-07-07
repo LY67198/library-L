@@ -21,6 +21,9 @@ from backend.router.seat_router import router as seat_router
 from backend.router.admin_book_router import router as admin_book_router
 from backend.router.admin_doc_router import router as admin_doc_router
 
+from mcp_server.auth import mcp_auth_middleware
+from mcp_server.server import create_mcp_sse_app
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +41,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.middleware("http")(mcp_auth_middleware)
+
     app.include_router(health_router)
 
     app.include_router(chat_router)
@@ -46,6 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(seat_router)
     app.include_router(admin_book_router)
     app.include_router(admin_doc_router)
+
+    app.mount("/api/v1/mcp", create_mcp_sse_app())
     return app
 
 
