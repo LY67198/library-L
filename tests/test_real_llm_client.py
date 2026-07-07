@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from agents.llm import RuleBasedLLMClient
-from agents.llm.client import RealLLMClient, _call_with_fallback
+from agents.llm_client import RealLLMClient
+from agents.llm_client.client import _call_with_fallback
 
 
 # ─── mock factory helpers ───
